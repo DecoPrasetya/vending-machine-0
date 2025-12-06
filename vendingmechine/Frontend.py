@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
 from collections import Counter
-from tkinter import Frame, Label, Button, messagebox
+from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text
 
 from PIL import Image, ImageTk
 
@@ -20,6 +20,7 @@ root.geometry(
 # ===================== VARIABEL GLOBAL =====================
 selected_products = []
 entered_number = ""
+total_price_var = tk.StringVar(value="TOTAL: Rp 0")
 
 
 # ===================== FUNGSI RESIZE DINAMIS =====================
@@ -67,7 +68,9 @@ def select_product(name, price, stock_label, index):
 
 def update_order_display():
     if not selected_products:
-        order_label.config(text="Belum ada pesanan")
+        order_text.delete(1.0, tk.END)
+        order_text.insert(1.0, "Belum ada pesanan")
+        total_price_var.set("TOTAL: Rp 0")
         return
 
     counter = Counter([p["name"] for p in selected_products])
@@ -85,7 +88,11 @@ def update_order_display():
     left_column = order_list[:mid]
     right_column = order_list[mid:]
 
-    order_text = "PESANAN SEMENTARA:\n\n"
+    # Clear text widget
+    order_text.delete(1.0, tk.END)
+
+    # Tambahkan header
+    order_text.insert(tk.END, "PESANAN SEMENTARA:\n\n")
 
     max_items = max(len(left_column), len(right_column))
 
@@ -102,13 +109,14 @@ def update_order_display():
             right_text = f"{name} x{count}: Rp {total:,}"
 
         col_width = 30  # Kurangi col width
-        order_text += f"{left_text:<{col_width}}  {right_text:<{col_width}}\n"
+        line_text = f"{left_text:<{col_width}}  {right_text:<{col_width}}\n"
+        order_text.insert(tk.END, line_text)
 
     total = sum(item[2] for item in order_list)
-    order_text += f"\n{'=' * 60}\n"  # Kurangi panjang garis
-    order_text += f"TOTAL: Rp {total:,}"
+    total_price_var.set(f"TOTAL: Rp {total:,}")
 
-    order_label.config(text=order_text)
+    # Tambahkan garis dan total di bawah
+    order_text.insert(tk.END, f"\n{'=' * 60}\n")
 
 
 def clear_order():
@@ -261,7 +269,7 @@ def load_image_auto(name):
         if os.path.exists(path):
             try:
                 img = Image.open(path)
-                img = img.resize((60, 60))  # Gambar lebih kecil
+                img = img.resize((50, 50))  # Gambar lebih kecil
                 return ImageTk.PhotoImage(img)
             except:
                 return None
@@ -284,22 +292,64 @@ for i, (name, price, stock) in enumerate(products):
         col = 0
         row += 1
 
-# ===================== Pesanan Box =====================
+# ===================== Pesanan Box dengan SCROLLBAR =====================
 order_box = Frame(left_panel, bg="#2c3e50")
-order_box.pack(fill="x", pady=15, padx=15)  # Kurangi padding
+order_box.pack(fill="both", expand=True, pady=15, padx=15)  # expand=True agar bisa memenuhi ruang
 
-Label(order_box, text="PESANAN", font=("Itim", 12, "bold"),  # Font lebih kecil
-      fg="white", bg="#2c3e50").pack(pady=3)  # Kurangi padding
+# Header untuk PESANAN, TOTAL, dan Hapus Pesanan
+order_header = Frame(order_box, bg="#2c3e50")
+order_header.pack(fill="x", padx=10, pady=(5, 0))
 
-order_label = Label(order_box, text="Belum ada pesanan",
-                    font=("Courier New", 9, "bold"),  # Font lebih kecil
-                    fg="white", bg="#2c3e50", justify="left", anchor="nw")
-order_label.pack(fill="both", expand=True, padx=8, pady=8)  # Kurangi padding
+# Label PESANAN di kiri
+Label(order_header, text="PESANAN", font=("Itim", 12, "bold"),
+      fg="white", bg="#2c3e50").pack(side="left", pady=3)
 
-btn_clear_order = Button(order_box, text="Hapus Pesanan", font=("Itim", 9),  # Font lebih kecil
+# Total Pesanan di tengah (pakai StringVar)
+total_price_label = Label(order_header, textvariable=total_price_var,
+                          font=("Itim", 11, "bold"),
+                          fg="#f1c40f", bg="#2c3e50")
+total_price_label.pack(side="left", expand=True, pady=3)
+
+# Tombol Hapus Pesanan di kanan
+btn_clear_order = Button(order_header, text="Hapus Pesanan", font=("Itim", 9),
                          bg="#e74c3c", fg="white", command=clear_order,
-                         padx=5, pady=2)  # Tombol lebih kecil
-btn_clear_order.pack(pady=(0, 8))  # Kurangi padding
+                         padx=8, pady=2)
+btn_clear_order.pack(side="right", pady=3)
+
+# Frame untuk daftar pesanan DENGAN SCROLLBAR
+order_content = Frame(order_box, bg="#34495e")
+order_content.pack(fill="both", expand=True, padx=10, pady=10)
+
+# Buat Text widget dengan Scrollbar
+text_frame = Frame(order_content, bg="#34495e")
+text_frame.pack(fill="both", expand=True)
+
+# Scrollbar vertikal
+scrollbar = Scrollbar(text_frame)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+# Text widget untuk menampilkan pesanan
+order_text = Text(text_frame, font=("Courier New", 9, "bold"),
+                  fg="white", bg="#34495e",
+                  width=40, height=10,  # Ukuran minimum
+                  wrap=tk.WORD,  # Wrap text
+                  yscrollcommand=scrollbar.set,
+                  state="normal")  # Bisa diedit untuk insert text
+order_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+# Konfigurasi scrollbar
+scrollbar.config(command=order_text.yview)
+
+# Set text awal
+order_text.insert(1.0, "Belum ada pesanan")
+
+
+# Nonaktifkan editing oleh user
+def disable_text_input(event=None):
+    return "break"
+
+
+order_text.bind("<Key>", disable_text_input)
 
 # ===================== PANEL KANAN =====================
 right_panel = Frame(root, bg="#90E0EF")
