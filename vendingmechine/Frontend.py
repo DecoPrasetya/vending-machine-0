@@ -2,21 +2,13 @@ import os
 import tkinter as tk
 from collections import Counter
 from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text
+from controller import products 
 
 from PIL import Image, ImageTk
 
 # ===================== DATA PRODUK DENGAN ID =====================
-products = [
-    {"id": 1, "name": "Coca Cola", "price": "Rp 8.000", "stock": "Stok 10"},
-    {"id": 2, "name": "Aqua", "price": "Rp 5.000", "stock": "Stok 15"},
-    {"id": 3, "name": "Bintang", "price": "Rp 20.000", "stock": "Stok 20"},
-    {"id": 4, "name": "Teh Pucuk", "price": "Rp 5.000", "stock": "Stok 8"},
-    {"id": 5, "name": "Whisky", "price": "Rp 300.000", "stock": "Stok 25"},
-    {"id": 6, "name": "Pocari Sweat", "price": "Rp 10.000", "stock": "Stok 12"},
-    {"id": 7, "name": "Iceland", "price": "Rp 120.000", "stock": "Stok 10"},
-    {"id": 8, "name": "Nescaffe", "price": "Rp 10.000", "stock": "Stok 15"},
-    {"id": 9, "name": "Vodka", "price": "Rp 130.000", "stock": "Stok 10"}
-]
+products = products
+
 
 
 # ===================== HELPER FUNCTIONS =====================
