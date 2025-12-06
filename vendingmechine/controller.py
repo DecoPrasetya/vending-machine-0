@@ -1,24 +1,9 @@
-import mysql .connector
+import mysql.connector
 from mysql.connector import Error
 import tkinter as tk
 from tkinter import Frame, Label, Button, messagebox, Entry, StringVar, IntVar
-
-def getConnection():
-    try:
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            passwd="",
-            database="vending_machine",
-            port=3306
-        )
-        return conn
-    except mysql.connector.Error as err:
-        print(f"Connection Error: {err}")
-        return None
-
 # ===================== VARIABEL GLOBAL =====================
-products = []  # Akan diisi dari database
+products = []  # Akan diisi dari databasec
 
 # ===================== FUNGSI DATABASE =====================
 def getConnection():
@@ -27,7 +12,7 @@ def getConnection():
             host="localhost",
             user="root",
             passwd="",
-            database="vending_machine",
+            database="vending-machine",
             port=3306
         )
         return conn
@@ -44,24 +29,40 @@ def load_products():
     if connection:
         try:
             cursor = connection.cursor()
-            cursor.execute("SELECT id, name, harga, qty FROM product ORDER BY id")
+            cursor.execute("SELECT * FROM product ORDER BY id")
             rows = cursor.fetchall()
             
             for row in rows:
-                id, name, harga, qty = row
-                # Format harga ke string dengan pemisah ribuan
-                harga = f"Rp {harga:,}".replace(",", ".")
-                stok = f"Stok {qty}"
-                products.append((id, name, harga, stok))
+                id, name, qty, harga = row
+                product_data = {
+                    "id": id,
+                    "name": name,
+                    "price": f"Rp {harga:,}".replace(",", "."),
+                    "stock": f"Stok {qty}"
+                }
+                products.append(product_data)
             
             cursor.close()
             connection.close()
+            
+            # DEBUG PRINT
+            print("=" * 50)
+            print("PRODUCTS LOADED (DICTIONARY FORMAT)")
+            print(f"Total products: {len(products)}")
+            for p in products:
+                print(f"  id: {p['id']}, name: {p['name']}, price: {p['price']}, stock: {p['stock']}")
+            print("=" * 50)
+            
             return True
+            print(products)
+            
         except Error as e:
             messagebox.showerror("Database Error", f"Gagal memuat produk: {e}")
             connection.close()
             return False
     return False
+
+load_products()
 
 def update_stock(product_id, new_stock):
     """Update stok produk di database"""

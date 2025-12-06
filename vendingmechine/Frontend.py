@@ -2,9 +2,70 @@ import os
 import tkinter as tk
 from collections import Counter
 from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text
+<<<<<<< HEAD
+=======
+from controller import products 
+>>>>>>> ac787107e21204f11f0aac76e7264303a5f17a0d
 
 from PIL import Image, ImageTk
 
+# ===================== DATA PRODUK DENGAN ID =====================
+products = products
+
+
+
+# ===================== HELPER FUNCTIONS =====================
+def get_product_by_id(product_id):
+    """Mendapatkan produk berdasarkan ID"""
+    for product in products:
+        if product["id"] == product_id:
+            return product
+    return None
+
+
+def get_product_by_index(index):
+    """Mendapatkan produk berdasarkan index di list"""
+    if 0 <= index < len(products):
+        return products[index]
+    return None
+
+
+def update_product_stock_by_id(product_id, new_stock):
+    """Update stok produk berdasarkan ID"""
+    for product in products:
+        if product["id"] == product_id:
+            product["stock"] = f"Stok {new_stock}"
+            return True
+    return False
+
+
+def update_product_stock_by_index(index, new_stock):
+    """Update stok produk berdasarkan index"""
+    if 0 <= index < len(products):
+        products[index]["stock"] = f"Stok {new_stock}"
+        return True
+    return False
+
+
+def get_product_name_by_id(product_id):
+    """Mendapatkan nama produk berdasarkan ID"""
+    product = get_product_by_id(product_id)
+    return product["name"] if product else None
+
+
+def get_product_price_by_id(product_id):
+    """Mendapatkan harga produk berdasarkan ID"""
+    product = get_product_by_id(product_id)
+    return product["price"] if product else None
+
+
+def get_product_stock_by_id(product_id):
+    """Mendapatkan stok produk berdasarkan ID"""
+    product = get_product_by_id(product_id)
+    return product["stock"] if product else None
+
+
+# ===================== INITIAL SETUP =====================
 root = tk.Tk()
 root.title("Vending Machine")
 root.configure(bg="#CAF0F8")
@@ -21,6 +82,33 @@ root.geometry(
 selected_products = []
 entered_number = ""
 total_price_var = tk.StringVar(value="TOTAL: Rp 0")
+<<<<<<< HEAD
+=======
+product_cards = []
+product_stock_labels = []
+
+
+# ===================== FUNGSI LOAD GAMBAR =====================
+def load_image_auto(name):
+    """Load gambar produk dari folder images"""
+    folder = "images"
+    possible_ext = [".png", ".jpg", ".jpeg", ".PNG", ".JPG", ".JPEG"]
+
+    for ext in possible_ext:
+        path = os.path.join(folder, name + ext)
+        if os.path.exists(path):
+            try:
+                img = Image.open(path)
+                img = img.resize((50, 50))  # Gambar lebih kecil
+                return ImageTk.PhotoImage(img)
+            except:
+                print(f"[ERROR] Gagal load gambar: {path}")
+                return None
+
+    # Jika gambar tidak ditemukan, buat placeholder
+    print(f"[WARNING] Gambar tidak ditemukan: {name}")
+    return None
+>>>>>>> ac787107e21204f11f0aac76e7264303a5f17a0d
 
 
 # ===================== FUNGSI RESIZE DINAMIS =====================
@@ -45,23 +133,28 @@ root.bind("<Configure>", resize)
 
 
 # ===================== FUNGSI PRODUK =====================
-def select_product(name, price, stock_label, index):
+def select_product(product_id, price, stock_label, index):
     stock_text = stock_label.cget("text")
     if "Stok" in stock_text:
         current_stock = int(stock_text.split(" ")[1])
         if current_stock <= 0:
-            messagebox.showwarning("Stok Habis", f"{name} sudah habis!")
+            messagebox.showwarning("Stok Habis", f"{get_product_name_by_id(product_id)} sudah habis!")
             return
 
         new_stock = current_stock - 1
         stock_label.config(text=f"Stok {new_stock}")
+
+        # Update stok di dictionary
+        update_product_stock_by_id(product_id, new_stock)
+
         selected_products.append({
-            "name": name,
+            "id": product_id,
+            "name": get_product_name_by_id(product_id),
             "price": price,
             "index": index
         })
         update_order_display()
-        messagebox.showinfo("Ditambahkan", f"{name} telah ditambahkan ke keranjang!")
+        messagebox.showinfo("Ditambahkan", f"{get_product_name_by_id(product_id)} telah ditambahkan ke keranjang!")
     else:
         messagebox.showwarning("Error", "Format stok tidak valid")
 
@@ -77,9 +170,10 @@ def update_order_display():
     order_list = []
 
     for name, count in counter.items():
-        for prod in products:
-            if prod[0] == name:
-                price = int(prod[1].replace("Rp ", "").replace(".", ""))
+        # Cari produk berdasarkan nama
+        for product in products:
+            if product["name"] == name:
+                price = int(product["price"].replace("Rp ", "").replace(".", ""))
                 total_item = price * count
                 order_list.append((name, count, total_item))
                 break
@@ -122,9 +216,15 @@ def update_order_display():
 def clear_order():
     global selected_products
     for prod in selected_products:
-        index = prod["index"]
-        stock_label = product_stock_labels[index]
-        stock_label.config(text=products[index][2])
+        product_id = prod["id"]
+        stock_label = product_stock_labels[prod["index"]]
+
+        # Reset stok ke nilai awal dari products dictionary
+        original_product = get_product_by_id(product_id)
+        if original_product:
+            original_stock = int(original_product["stock"].split(" ")[1])
+            stock_label.config(text=f"Stok {original_stock}")
+            update_product_stock_by_id(product_id, original_stock)
 
     selected_products = []
     update_order_display()
@@ -161,9 +261,9 @@ def process_payment():
 
     counter = Counter([p["name"] for p in selected_products])
     for name, count in counter.items():
-        for prod in products:
-            if prod[0] == name:
-                price = int(prod[1].replace("Rp ", "").replace(".", ""))
+        for product in products:
+            if product["name"] == name:
+                price = int(product["price"].replace("Rp ", "").replace(".", ""))
                 struk_text += f"{name} x{count}: Rp {price * count:,}\n"
                 break
 
@@ -193,32 +293,22 @@ title.pack(pady=15)  # Kurangi padding
 items_frame = Frame(left_panel, bg="#90E0EF")
 items_frame.pack(pady=8)  # Kurangi padding
 
-products = [
-    ("Coca Cola", "Rp 8.000", "Stok 10"),
-    ("Aqua", "Rp 5.000", "Stok 15"),
-    ("Bintang", "Rp 20.000", "Stok 20"),
-    ("Teh Pucuk", "Rp 5.000", "Stok 8"),
-    ("Whisky", "Rp 300.000", "Stok 25"),
-    ("Pocari Sweat", "Rp 10.000", "Stok 12"),
-    ("Iceland", "Rp 120.000", "Stok 10"),
-    ("Nescaffe", "Rp 10.000", "Stok 15"),
-    ("Vodka", "Rp 130.000", "Stok 10")
-]
 
-product_cards = []
-product_stock_labels = []
+# ===================== FUNGSI ITEM DENGAN GAMBAR DAN DICTIONARY =====================
+def create_item(parent, product_dict, index):
+    product_id = product_dict["id"]
+    name = product_dict["name"]
+    price = product_dict["price"]
+    stock = product_dict["stock"]
 
-
-# ===================== FUNGSI ITEM DENGAN GAMBAR =====================
-def create_item(parent, name, price, stock, index):
-    frame = Frame(parent, bg="white", highlightthickness=1, highlightbackground="#0077b6")  # Kurangi border
+    frame = Frame(parent, bg="white", highlightthickness=1, highlightbackground="#0077b6")
     frame.pack_propagate(False)
 
-    # LOAD GAMBAR OTOMATIS - ukuran lebih kecil
+    # LOAD GAMBAR DARI FOLDER
     img = load_image_auto(name)
 
     def on_click(event):
-        select_product(name, price, stock_label, index)
+        select_product(product_id, price, stock_label, index)
 
     frame.bind("<Button-1>", on_click)
 
@@ -231,20 +321,34 @@ def create_item(parent, name, price, stock, index):
     frame.bind("<Enter>", on_enter)
     frame.bind("<Leave>", on_leave)
 
-    if img:
-        img_label = Label(frame, image=img, bg="white")
-        img_label.image = img
-        img_label.pack(pady=3)  # Kurangi padding
-        img_label.bind("<Button-1>", on_click)
+    # Frame untuk gambar
+    img_frame = Frame(frame, bg="white", height=60)
+    img_frame.pack(fill="x", pady=(5, 0))
+    img_frame.pack_propagate(False)
 
-    name_label = Label(frame, text=name, font=("Itim", 11, "bold"), bg="white")  # Font lebih kecil
+    if img:
+        img_label = Label(img_frame, image=img, bg="white")
+        img_label.image = img  # Keep reference
+        img_label.pack()
+        img_label.bind("<Button-1>", on_click)
+    else:
+        # Placeholder jika gambar tidak ditemukan
+        placeholder = Label(img_frame, text="🛒", font=("Arial", 24), bg="white")
+        placeholder.pack()
+        placeholder.bind("<Button-1>", on_click)
+
+    # Frame untuk informasi teks
+    info_frame = Frame(frame, bg="white")
+    info_frame.pack(fill="both", expand=True, padx=5, pady=5)
+
+    name_label = Label(info_frame, text=name, font=("Itim", 11, "bold"), bg="white", wraplength=140)
     name_label.pack()
 
-    price_label = Label(frame, text=price, font=("Itim", 10), fg="blue", bg="white")  # Font lebih kecil
+    price_label = Label(info_frame, text=price, font=("Itim", 10), fg="blue", bg="white")
     price_label.pack()
 
-    stock_label = Label(frame, text=stock, font=("Itim", 9), bg="white")  # Font lebih kecil
-    stock_label.pack(pady=(0, 5))  # Kurangi padding
+    stock_label = Label(info_frame, text=stock, font=("Itim", 9), bg="white")
+    stock_label.pack(pady=(0, 5))
 
     for widget in [name_label, price_label, stock_label]:
         widget.bind("<Button-1>", on_click)
@@ -252,14 +356,15 @@ def create_item(parent, name, price, stock, index):
         widget.bind("<Leave>", on_leave)
         widget.config(cursor="hand2")
 
-    click_label = Label(frame, text="[Klik untuk memesan]", font=("Itim", 7),  # Font lebih kecil
+    click_label = Label(info_frame, text="[Klik untuk memesan]", font=("Itim", 7),
                         fg="gray", bg="white")
-    click_label.pack(pady=2)  # Kurangi padding
+    click_label.pack(pady=(0, 5))
     click_label.bind("<Button-1>", on_click)
 
     return frame, stock_label
 
 
+<<<<<<< HEAD
 def load_image_auto(name):
     folder = "images"
     possible_ext = [".png", ".jpg", ".jpeg", ".PNG", ".JPG", ".JPEG"]
@@ -278,12 +383,15 @@ def load_image_auto(name):
     return None
 
 
+=======
+# CREATE PRODUK DARI DICTIONARY DENGAN GAMBAR
+>>>>>>> ac787107e21204f11f0aac76e7264303a5f17a0d
 row = 0
 col = 0
 
-for i, (name, price, stock) in enumerate(products):
-    item, stock_label = create_item(items_frame, name, price, stock, i)
-    item.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")  # Kurangi padding
+for i, product in enumerate(products):
+    item, stock_label = create_item(items_frame, product, i)
+    item.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
     product_cards.append(item)
     product_stock_labels.append(stock_label)
 
@@ -294,7 +402,11 @@ for i, (name, price, stock) in enumerate(products):
 
 # ===================== Pesanan Box dengan SCROLLBAR =====================
 order_box = Frame(left_panel, bg="#2c3e50")
+<<<<<<< HEAD
 order_box.pack(fill="both", expand=True, pady=15, padx=15)  # expand=True agar bisa memenuhi ruang
+=======
+order_box.pack(fill="both", expand=True, pady=15, padx=15)
+>>>>>>> ac787107e21204f11f0aac76e7264303a5f17a0d
 
 # Header untuk PESANAN, TOTAL, dan Hapus Pesanan
 order_header = Frame(order_box, bg="#2c3e50")
@@ -331,10 +443,17 @@ scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 # Text widget untuk menampilkan pesanan
 order_text = Text(text_frame, font=("Courier New", 9, "bold"),
                   fg="white", bg="#34495e",
+<<<<<<< HEAD
                   width=40, height=10,  # Ukuran minimum
                   wrap=tk.WORD,  # Wrap text
                   yscrollcommand=scrollbar.set,
                   state="normal")  # Bisa diedit untuk insert text
+=======
+                  width=40, height=10,
+                  wrap=tk.WORD,
+                  yscrollcommand=scrollbar.set,
+                  state="normal")
+>>>>>>> ac787107e21204f11f0aac76e7264303a5f17a0d
 order_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
 # Konfigurasi scrollbar
@@ -356,27 +475,26 @@ right_panel = Frame(root, bg="#90E0EF")
 right_panel.place(x=600, y=15)
 
 welcome_box = Frame(right_panel, bg="#00B4D8")
-welcome_box.pack(fill="x", pady=15, padx=15)  # Kurangi padding
+welcome_box.pack(fill="x", pady=15, padx=15)
 
-Label(welcome_box, text="SELAMAT DATANG", font=("Itim", 14, "bold"),  # Font lebih kecil
-      fg="white", bg="#00B4D8").pack(pady=3)  # Kurangi padding
-Label(welcome_box, text="PILIH MENU:", font=("Itim", 12, "bold"),  # Font lebih kecil
+Label(welcome_box, text="SELAMAT DATANG", font=("Itim", 14, "bold"),
+      fg="white", bg="#00B4D8").pack(pady=3)
+Label(welcome_box, text="PILIH MENU:", font=("Itim", 12, "bold"),
       fg="white", bg="#00B4D8").pack()
-Label(welcome_box, text="1. BELANJA", font=("Itim", 10), fg="white", bg="#00B4D8").pack()  # Font lebih kecil
-Label(welcome_box, text="2. ADMIN", font=("Itim", 10), fg="white", bg="#00B4D8").pack()  # Font lebih kecil
+Label(welcome_box, text="1. BELANJA", font=("Itim", 10), fg="white", bg="#00B4D8").pack()
+Label(welcome_box, text="2. ADMIN", font=("Itim", 10), fg="white", bg="#00B4D8").pack()
 
 money_box = Frame(right_panel, bg="#1a1f33")
-money_box.pack(fill="x", pady=15, padx=15)  # Kurangi padding
+money_box.pack(fill="x", pady=15, padx=15)
 
 money_var = tk.StringVar(value="Rp 0")
 
-Label(money_box, text="Uang Masuk:", font=("Arial", 11), fg="white", bg="#1a1f33").pack(anchor="w",
-                                                                                        pady=3)  # Font lebih kecil
-Label(money_box, textvariable=money_var, font=("Arial", 16, "bold"), fg="white",  # Font lebih kecil
-      bg="#1a1f33").pack(anchor="w", pady=3)  # Kurangi padding
+Label(money_box, text="Uang Masuk:", font=("Arial", 11), fg="white", bg="#1a1f33").pack(anchor="w", pady=3)
+Label(money_box, textvariable=money_var, font=("Arial", 16, "bold"), fg="white",
+      bg="#1a1f33").pack(anchor="w", pady=3)
 
 keypad_frame = Frame(right_panel, bg="#0f1323")
-keypad_frame.pack(pady=15)  # Kurangi padding
+keypad_frame.pack(pady=15)
 
 keypad_buttons = []
 
@@ -400,38 +518,38 @@ for r in range(3):
     for c in range(3):
         num = keys[index]
         btn = Button(
-            keypad_frame, text=num, font=("Itim", 14),  # Font lebih kecil
+            keypad_frame, text=num, font=("Itim", 14),
             command=lambda n=num: keypad_press(n),
             relief="raised",
-            borderwidth=1,  # Border lebih tipis
-            width=4,  # Tombol lebih kecil
+            borderwidth=1,
+            width=4,
             height=1
         )
-        btn.grid(row=r, column=c, padx=5, pady=5, ipadx=3, ipady=3)  # Padding lebih kecil
+        btn.grid(row=r, column=c, padx=5, pady=5, ipadx=3, ipady=3)
         keypad_buttons.append(btn)
         index += 1
 
-btn_clear = Button(keypad_frame, text="C", font=("Itim", 14),  # Font lebih kecil
+btn_clear = Button(keypad_frame, text="C", font=("Itim", 14),
                    bg="#c0392b", fg="white", command=clear,
                    width=4, height=1)
 
-btn_zero = Button(keypad_frame, text="0", font=("Itim", 14),  # Font lebih kecil
+btn_zero = Button(keypad_frame, text="0", font=("Itim", 14),
                   command=lambda: keypad_press("0"),
                   width=4, height=1)
 
-btn_ok = Button(keypad_frame, text="OK", font=("Itim", 14),  # Font lebih kecil
+btn_ok = Button(keypad_frame, text="OK", font=("Itim", 14),
                 bg="#27ae60", fg="white",
                 command=process_payment,
                 width=4, height=1)
 
-btn_clear.grid(row=3, column=0, padx=5, pady=5, ipadx=3, ipady=3)  # Padding lebih kecil
-btn_zero.grid(row=3, column=1, padx=5, pady=5, ipadx=3, ipady=3)  # Padding lebih kecil
-btn_ok.grid(row=3, column=2, padx=5, pady=5, ipadx=3, ipady=3)  # Padding lebih kecil
+btn_clear.grid(row=3, column=0, padx=5, pady=5, ipadx=3, ipady=3)
+btn_zero.grid(row=3, column=1, padx=5, pady=5, ipadx=3, ipady=3)
+btn_ok.grid(row=3, column=2, padx=5, pady=5, ipadx=3, ipady=3)
 
 keypad_buttons.extend([btn_clear, btn_zero, btn_ok])
 
-Button(right_panel, text="ADMIN", font=("Itim", 12, "bold"),  # Font lebih kecil
+Button(right_panel, text="ADMIN", font=("Itim", 12, "bold"),
        bg="#f39c12", fg="white",
-       padx=5, pady=3).pack(pady=10, fill="x", padx=15)  # Kurangi padding
+       padx=5, pady=3).pack(pady=10, fill="x", padx=15)
 
 root.mainloop()
