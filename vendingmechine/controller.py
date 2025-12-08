@@ -1,9 +1,10 @@
 import mysql.connector
 from mysql.connector import Error
 import tkinter as tk
-from tkinter import Frame, Label, Button, messagebox, Entry, StringVar, IntVar
+from tkinter import messagebox
+
 # ===================== VARIABEL GLOBAL =====================
-products = []  # Akan diisi dari databasec
+products = []  # Akan diisi dari database
 
 # ===================== FUNGSI DATABASE =====================
 def getConnection():
@@ -12,7 +13,7 @@ def getConnection():
             host="localhost",
             user="root",
             passwd="",
-            database="vending-machine",
+            database="vending_machine",
             port=3306
         )
         return conn
@@ -37,8 +38,10 @@ def load_products():
                 product_data = {
                     "id": id,
                     "name": name,
-                    "price": f"Rp {harga:,}".replace(",", "."),
-                    "stock": f"Stok {qty}"
+                    "price": harga,  # Simpan sebagai integer untuk perhitungan
+                    "price_display": f"Rp {harga:,}".replace(",", "."),  # Untuk display
+                    "stock": qty,  # Simpan sebagai integer
+                    "stock_display": f"Stok {qty}"  # Untuk display
                 }
                 products.append(product_data)
             
@@ -54,11 +57,11 @@ def load_products():
             print("=" * 50)
             
             return True
-            print(products)
             
         except Error as e:
             messagebox.showerror("Database Error", f"Gagal memuat produk: {e}")
-            connection.close()
+            if connection:
+                connection.close()
             return False
     return False
 
@@ -77,7 +80,8 @@ def update_stock(product_id, new_stock):
             return True
         except Error as e:
             messagebox.showerror("Database Error", f"Gagal update stok: {e}")
-            connection.close()
+            if connection:
+                connection.close()
             return False
     return False
 
@@ -94,6 +98,7 @@ def get_product_by_id(product_id):
             return product
         except Error as e:
             messagebox.showerror("Database Error", f"Gagal mengambil data produk: {e}")
-            connection.close()
+            if connection:
+                connection.close()
             return None
     return None

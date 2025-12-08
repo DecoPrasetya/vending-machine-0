@@ -1,37 +1,31 @@
 import os
 import tkinter as tk
 from collections import Counter
-from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text
-from controller import products 
-
+from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text, simpledialog
 from PIL import Image, ImageTk
-
-# ===================== DATA PRODUK DENGAN ID =====================
-products = products
-
+from controller import products, update_stock, load_products
 
 
 # ===================== HELPER FUNCTIONS =====================
 def get_product_by_id(product_id):
     """Mendapatkan produk berdasarkan ID"""
-    for product in products:
+    for product in products:  # Gunakan products, bukan all_products
         if product["id"] == product_id:
             return product
     return None
 
-
 def get_product_by_index(index):
     """Mendapatkan produk berdasarkan index di list"""
-    if 0 <= index < len(products):
+    if 0 <= index < len(products):  # Gunakan products
         return products[index]
     return None
 
-
 def update_product_stock_by_id(product_id, new_stock):
     """Update stok produk berdasarkan ID"""
-    for product in products:
+    for product in products:  # Gunakan products
         if product["id"] == product_id:
-            product["stock"] = f"Stok {new_stock}"
+            product["stock"] = new_stock  # INTEGER
+            product["stock_display"] = f"Stok {new_stock}"
             return True
     return False
 
@@ -53,7 +47,7 @@ def get_product_name_by_id(product_id):
 def get_product_price_by_id(product_id):
     """Mendapatkan harga produk berdasarkan ID"""
     product = get_product_by_id(product_id)
-    return product["price"] if product else None
+    return product["price"] if product else 0
 
 
 def get_product_stock_by_id(product_id):
@@ -127,31 +121,40 @@ root.bind("<Configure>", resize)
 
 
 # ===================== FUNGSI PRODUK =====================
-def select_product(product_id, price, stock_label, index):
-    stock_text = stock_label.cget("text")
-    if "Stok" in stock_text:
-        current_stock = int(stock_text.split(" ")[1])
-        if current_stock <= 0:
-            messagebox.showwarning("Stok Habis", f"{get_product_name_by_id(product_id)} sudah habis!")
-            return
+def select_product(product_id, stock_label, index):
+    """Fungsi utama untuk memilih produk"""
+    product = get_product_by_id(product_id)
+    if not product:
+        messagebox.showerror("Error", "Produk tidak ditemukan!")
+        return
+    
+    # Ambil stok dari dictionary, bukan dari label
+    current_stock = product["stock"]  # INTEGER dari controller
+    
+    if current_stock <= 0:
+        messagebox.showwarning("Stok Habis", f"{product['name']} sudah habis!")
+        return
 
-        new_stock = current_stock - 1
-        stock_label.config(text=f"Stok {new_stock}")
-
-        # Update stok di dictionary
-        update_product_stock_by_id(product_id, new_stock)
-
-        selected_products.append({
-            "id": product_id,
-            "name": get_product_name_by_id(product_id),
-            "price": price,
-            "index": index
-        })
-        update_order_display()
-        messagebox.showinfo("Ditambahkan", f"{get_product_name_by_id(product_id)} telah ditambahkan ke keranjang!")
-    else:
-        messagebox.showwarning("Error", "Format stok tidak valid")
-
+    # Kurangi stok
+    new_stock = current_stock - 1
+    
+    # Update di dictionary
+    product["stock"] = new_stock
+    product["stock_display"] = f"Stok {new_stock}"
+    
+    # Update label di GUI
+    stock_label.config(text=f"Stok {new_stock}")
+    
+    # Tambahkan ke keranjang
+    selected_products.append({
+        "id": product_id,
+        "name": product["name"],
+        "price": product["price"],  # INTEGER dari controller
+        "index": index
+    })
+    
+    update_order_display()
+    messagebox.showinfo("Ditambahkan", f"{product['name']} telah ditambahkan ke keranjang!")
 
 def update_order_display():
     if not selected_products:
@@ -164,13 +167,14 @@ def update_order_display():
     order_list = []
 
     for name, count in counter.items():
-        # Cari produk berdasarkan nama
-        for product in products:
+        # Cari harga satuan dari products
+        unit_price = 0
+        for product in products:  # Gunakan products, bukan all_products
             if product["name"] == name:
-                price = int(product["price"].replace("Rp ", "").replace(".", ""))
-                total_item = price * count
-                order_list.append((name, count, total_item))
+                unit_price = product["price"]  # integer
                 break
+        
+        order_list.append((name, count, unit_price * count))
 
     mid = (len(order_list) + 1) // 2
     left_column = order_list[:mid]
@@ -209,17 +213,14 @@ def update_order_display():
 
 def clear_order():
     global selected_products
-    for prod in selected_products:
-        product_id = prod["id"]
-        stock_label = product_stock_labels[prod["index"]]
-
-        # Reset stok ke nilai awal dari products dictionary
-        original_product = get_product_by_id(product_id)
-        if original_product:
-            original_stock = int(original_product["stock"].split(" ")[1])
-            stock_label.config(text=f"Stok {original_stock}")
-            update_product_stock_by_id(product_id, original_stock)
-
+    # Reload dari database untuk mendapatkan stok asli
+    load_products()  # Fungsi dari controller
+    
+    # Reset semua label stok
+    for i, product in enumerate(products):
+        if i < len(product_stock_labels):
+            product_stock_labels[i].config(text=f"Stok {product['stock']}")
+    
     selected_products = []
     update_order_display()
     messagebox.showinfo("Dihapus", "Semua pesanan telah dihapus!")
@@ -232,8 +233,7 @@ def process_payment():
 
     total = 0
     for prod in selected_products:
-        price = int(prod["price"].replace("Rp ", "").replace(".", ""))
-        total += price
+        total += prod["price"]
 
     money_text = money_var.get().replace("Rp ", "")
     try:
@@ -255,11 +255,14 @@ def process_payment():
 
     counter = Counter([p["name"] for p in selected_products])
     for name, count in counter.items():
-        for product in products:
-            if product["name"] == name:
-                price = int(product["price"].replace("Rp ", "").replace(".", ""))
-                struk_text += f"{name} x{count}: Rp {price * count:,}\n"
+        # Cari harga produk
+        unit_price = 0
+        for prod in products:  # Gunakan products
+            if prod["name"] == name:
+                unit_price = prod["price"]
                 break
+        
+        struk_text += f"{name} x{count}: Rp {unit_price * count:,}\n"
 
     struk_text += f"\nTotal: Rp {total:,}\n"
     struk_text += f"Uang: Rp {money_entered:,}\n"
@@ -270,6 +273,104 @@ def process_payment():
     clear_order()
     clear()
 
+# ===================== FUNGSI ADMIN =====================
+def admin_login():
+    """Fungsi untuk login admin"""
+    password = simpledialog.askstring("Admin Login", "Masukkan password admin:", show='*')
+    
+    if password == "admin123":
+        show_admin_panel()
+    elif password is not None:
+        messagebox.showerror("Login Gagal", "Password salah!")
+
+
+def show_admin_panel():
+    """Panel admin untuk mengelola stok"""
+    admin_window = tk.Toplevel(root)
+    admin_window.title("Admin Panel - Kelola Stok")
+    admin_window.geometry("400x500")
+    admin_window.configure(bg="#f0f0f0")
+    
+    Label(admin_window, text="ADMIN PANEL", font=("Arial", 16, "bold"), 
+          bg="#f0f0f0").pack(pady=10)
+    
+    products_frame = Frame(admin_window, bg="white", relief="solid", bd=1)
+    products_frame.pack(fill="both", expand=True, padx=20, pady=10)
+    
+    header_frame = Frame(products_frame, bg="#e0e0e0")
+    header_frame.pack(fill="x", pady=(5, 0))
+    Label(header_frame, text="Produk", width=20, font=("Arial", 10, "bold"), 
+          bg="#e0e0e0").pack(side="left", padx=5)
+    Label(header_frame, text="Stok", width=15, font=("Arial", 10, "bold"), 
+          bg="#e0e0e0").pack(side="left", padx=5)
+    Label(header_frame, text="Aksi", width=10, font=("Arial", 10, "bold"), 
+          bg="#e0e0e0").pack(side="left", padx=5)
+    
+    for i, prod_data in enumerate(products):  # Gunakan products
+        product_id = prod_data["id"]
+        name = prod_data["name"]
+        current_stock = prod_data["stock"]
+        
+        product_frame = Frame(products_frame, bg="white")
+        product_frame.pack(fill="x", pady=2)
+        
+        Label(product_frame, text=name, width=20, anchor="w", 
+              bg="white").pack(side="left", padx=5)
+        
+        stock_label = Label(product_frame, text=str(current_stock), width=15, 
+                           bg="white")
+        stock_label.pack(side="left", padx=5)
+        
+        def add_stock(idx=i, lbl=stock_label, prod_id=product_id):
+            current = int(lbl.cget("text"))
+            new_stock = current + 1
+            lbl.config(text=str(new_stock))
+            # Update di list products
+            if 0 <= idx < len(products):
+                products[idx]["stock"] = new_stock
+                products[idx]["stock_display"] = f"Stok {new_stock}"
+            # Update label di main window
+            if 0 <= idx < len(product_stock_labels):
+                product_stock_labels[idx].config(text=f"Stok {new_stock}")
+        
+        def remove_stock(idx=i, lbl=stock_label, prod_id=product_id):
+            current = int(lbl.cget("text"))
+            if current > 0:
+                new_stock = current - 1
+                lbl.config(text=str(new_stock))
+                # Update di list products
+                if 0 <= idx < len(products):
+                    products[idx]["stock"] = new_stock
+                    products[idx]["stock_display"] = f"Stok {new_stock}"
+                # Update label di main window
+                if 0 <= idx < len(product_stock_labels):
+                    product_stock_labels[idx].config(text=f"Stok {new_stock}")
+        
+        Button(product_frame, text="+", width=3, bg="green", fg="white",
+               command=add_stock).pack(side="left", padx=2)
+        Button(product_frame, text="-", width=3, bg="red", fg="white",
+               command=remove_stock).pack(side="left", padx=2)
+    
+    def save_changes():
+        try:
+            for prod_data in products:
+                product_id = prod_data["id"]
+                current_stock = prod_data["stock"]
+                success = update_stock(product_id, current_stock)
+                if success:
+                    print(f"Saved stock for {prod_data['name']}: {current_stock}")
+            
+            messagebox.showinfo("Berhasil", "Perubahan stok berhasil disimpan!")
+            admin_window.destroy()
+        except Exception as e:
+            messagebox.showerror("Error", f"Gagal menyimpan: {e}")
+    
+    Button(admin_window, text="Simpan Perubahan", font=("Arial", 12),
+           bg="#4CAF50", fg="white", command=save_changes).pack(pady=10)
+    
+    Button(admin_window, text="Tutup", font=("Arial", 12),
+           bg="#f44336", fg="white", command=admin_window.destroy).pack(pady=5)
+
 
 # ===================== PANEL KIRI =====================
 left_panel = Frame(root, bg="#00B4D8")
@@ -278,14 +379,14 @@ left_panel.place(x=15, y=15)
 title = Label(
     left_panel,
     text="Vending Machine",
-    font=("Itim", 20, "bold"),  # Kurangi font size
+    font=("Itim", 20, "bold"),  
     fg="#F5F5F5",
     bg="#00B4D8"
 )
-title.pack(pady=15)  # Kurangi padding
+title.pack(pady=15)  
 
 items_frame = Frame(left_panel, bg="#90E0EF")
-items_frame.pack(pady=8)  # Kurangi padding
+items_frame.pack(pady=8) 
 
 
 # ===================== FUNGSI ITEM DENGAN GAMBAR DAN DICTIONARY =====================
@@ -302,7 +403,7 @@ def create_item(parent, product_dict, index):
     img = load_image_auto(name)
 
     def on_click(event):
-        select_product(product_id, price, stock_label, index)
+        select_product(product_id, stock_label, index)
 
     frame.bind("<Button-1>", on_click)
 
@@ -362,7 +463,7 @@ def create_item(parent, product_dict, index):
 row = 0
 col = 0
 
-for i, product in enumerate(products):
+for i, product in enumerate(products):  # Sudah benar, gunakan products
     item, stock_label = create_item(items_frame, product, i)
     item.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
     product_cards.append(item)
@@ -511,7 +612,7 @@ btn_ok.grid(row=3, column=2, padx=5, pady=5, ipadx=3, ipady=3)
 keypad_buttons.extend([btn_clear, btn_zero, btn_ok])
 
 Button(right_panel, text="ADMIN", font=("Itim", 12, "bold"),
-       bg="#f39c12", fg="white",
+       bg="#f39c12", fg="white", command=admin_login,
        padx=5, pady=3).pack(pady=10, fill="x", padx=15)
 
 root.mainloop()
