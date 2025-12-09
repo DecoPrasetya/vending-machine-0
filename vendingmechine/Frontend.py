@@ -3,7 +3,7 @@ import tkinter as tk
 from collections import Counter
 from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text, simpledialog
 from PIL import Image, ImageTk
-from controller import products, update_stock, load_products
+from controller import products, update_stock, load_products, get_admin_password
 
 
 # ===================== HELPER FUNCTIONS =====================
@@ -278,7 +278,7 @@ def admin_login():
     """Fungsi untuk login admin"""
     password = simpledialog.askstring("Admin Login", "Masukkan password admin:", show='*')
     
-    if password == "admin123":
+    if password == get_admin_password():
         show_admin_panel()
     elif password is not None:
         messagebox.showerror("Login Gagal", "Password salah!")
@@ -306,7 +306,7 @@ def show_admin_panel():
     Label(header_frame, text="Aksi", width=10, font=("Arial", 10, "bold"), 
           bg="#e0e0e0").pack(side="left", padx=5)
     
-    for i, prod_data in enumerate(products):  # Gunakan products
+    for i, prod_data in enumerate(products): 
         product_id = prod_data["id"]
         name = prod_data["name"]
         current_stock = prod_data["stock"]

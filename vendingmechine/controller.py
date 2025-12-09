@@ -102,3 +102,21 @@ def get_product_by_id(product_id):
                 connection.close()
             return None
     return None
+
+def get_admin_password():
+    """Ambil password admin dari database"""
+    connection = getConnection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute("SELECT password FROM admin")
+            result = cursor.fetchone()
+            cursor.close()
+            connection.close()
+            return result[0] if result else None
+        except Error as e:
+            print(f"Error getting admin password: {e}")
+            if connection:
+                connection.close()
+            return None
+    return None
