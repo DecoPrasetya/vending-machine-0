@@ -9,22 +9,22 @@ from controller import products, update_stock, load_products, get_admin_password
 # ===================== HELPER FUNCTIONS =====================
 def get_product_by_id(product_id):
     """Mendapatkan produk berdasarkan ID"""
-    for product in products:  # Gunakan products, bukan all_products
+    for product in products:  
         if product["id"] == product_id:
             return product
     return None
 
 def get_product_by_index(index):
     """Mendapatkan produk berdasarkan index di list"""
-    if 0 <= index < len(products):  # Gunakan products
+    if 0 <= index < len(products):  
         return products[index]
     return None
 
 def update_product_stock_by_id(product_id, new_stock):
     """Update stok produk berdasarkan ID"""
-    for product in products:  # Gunakan products
+    for product in products: 
         if product["id"] == product_id:
-            product["stock"] = new_stock  # INTEGER
+            product["stock"] = new_stock  
             product["stock_display"] = f"Stok {new_stock}"
             return True
     return False
@@ -88,7 +88,7 @@ def load_image_auto(name):
         if os.path.exists(path):
             try:
                 img = Image.open(path)
-                img = img.resize((50, 50))  # Gambar lebih kecil
+                img = img.resize((50, 50)) 
                 return ImageTk.PhotoImage(img)
             except:
                 print(f"[ERROR] Gagal load gambar: {path}")
@@ -106,15 +106,15 @@ def resize(event=None):
     left_width = int(w * 0.6)  # Kurangi dari 0.63
     right_width = int(w * 0.35)  # Naikkan dari 0.32
 
-    left_panel.place(x=15, y=15, width=left_width, height=h - 30)  # Kurangi margin
+    left_panel.place(x=15, y=15, width=left_width, height=h - 30)  
     right_panel.place(x=left_width + 25, y=15, width=right_width - 15, height=h - 30)
 
     for card in product_cards:
-        card.config(width=int(left_width / 4.5), height=int((h - 150) / 5))  # Kurangi height
+        card.config(width=int(left_width / 4.5), height=int((h - 150) / 5)) 
 
     button_size = int(right_width / 8)
     for btn in keypad_buttons:
-        btn.config(width=int(button_size / 15), height=int(button_size / 40))  # Tombol lebih kecil
+        btn.config(width=int(button_size / 15), height=int(button_size / 40))  
 
 
 root.bind("<Configure>", resize)
@@ -129,7 +129,7 @@ def select_product(product_id, stock_label, index):
         return
     
     # Ambil stok dari dictionary, bukan dari label
-    current_stock = product["stock"]  # INTEGER dari controller
+    current_stock = product["stock"]  
     
     if current_stock <= 0:
         messagebox.showwarning("Stok Habis", f"{product['name']} sudah habis!")
@@ -149,7 +149,7 @@ def select_product(product_id, stock_label, index):
     selected_products.append({
         "id": product_id,
         "name": product["name"],
-        "price": product["price"],  # INTEGER dari controller
+        "price": product["price"],  
         "index": index
     })
     
@@ -169,7 +169,7 @@ def update_order_display():
     for name, count in counter.items():
         # Cari harga satuan dari products
         unit_price = 0
-        for product in products:  # Gunakan products, bukan all_products
+        for product in products:  
             if product["name"] == name:
                 unit_price = product["price"]  # integer
                 break
@@ -367,9 +367,6 @@ def show_admin_panel():
     
     Button(admin_window, text="Simpan Perubahan", font=("Arial", 12),
            bg="#4CAF50", fg="white", command=save_changes).pack(pady=10)
-    
-    Button(admin_window, text="Tutup", font=("Arial", 12),
-           bg="#f44336", fg="white", command=admin_window.destroy).pack(pady=5)
 
 
 # ===================== PANEL KIRI =====================

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 06 Des 2025 pada 09.48
+-- Waktu pembuatan: 09 Des 2025 pada 06.04
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -24,6 +24,23 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Struktur dari tabel `admin`
+--
+
+CREATE TABLE `admin` (
+  `password` varchar(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data untuk tabel `admin`
+--
+
+INSERT INTO `admin` (`password`) VALUES
+('admin123');
+
+-- --------------------------------------------------------
+
+--
 -- Struktur dari tabel `product`
 --
 
@@ -40,7 +57,7 @@ CREATE TABLE `product` (
 
 INSERT INTO `product` (`id`, `name`, `qty`, `harga`) VALUES
 (1, 'Coca-cola', 10, 8000),
-(2, 'Aqua', 9, 5000),
+(2, 'Aqua', 10, 5000),
 (3, 'Bintang', 10, 20000),
 (4, 'Teh Pucuk', 10, 5000),
 (5, 'Whisky', 10, 300000),
