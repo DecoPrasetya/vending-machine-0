@@ -367,7 +367,7 @@ def show_admin_panel():
     
     Button(admin_window, text="Simpan Perubahan", font=("Arial", 12),
            bg="#4CAF50", fg="white", command=save_changes).pack(pady=10)
-
+    
 
 # ===================== PANEL KIRI =====================
 left_panel = Frame(root, bg="#00B4D8")

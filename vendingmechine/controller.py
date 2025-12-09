@@ -13,7 +13,7 @@ def getConnection():
             host="localhost",
             user="root",
             passwd="",
-            database="vending_machine",
+            database="vending-machine",
             port=3306
         )
         return conn
