@@ -368,8 +368,8 @@ def show_admin_panel():
     Button(admin_window, text="Simpan Perubahan", font=("Arial", 12),
            bg="#4CAF50", fg="white", command=save_changes).pack(pady=10)
     
-    Button(admin_window, text="Tutup", font=("Arial", 12),
-           bg="#f44336", fg="white", command=admin_window.destroy).pack(pady=5)
+    # Button(admin_window, text="Tutup", font=("Arial", 12),
+    #        bg="#f44336", fg="white", command=admin_window.destroy).pack(pady=5)
 
 
 # ===================== PANEL KIRI =====================
