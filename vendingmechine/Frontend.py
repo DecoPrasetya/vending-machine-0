@@ -1,9 +1,10 @@
 import os
 import tkinter as tk
+from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text, simpledialog, Entry
+from tkinter import ttk  # <-- TAMBAHKAN INI
 from collections import Counter
-from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text, simpledialog
 from PIL import Image, ImageTk
-from controller import products, update_stock, load_products, get_admin_password
+from controller import products, update_stock, load_products, get_admin_password, add_product, update_product, delete_product, get_product_image_extensions
 
 
 # ===================== HELPER FUNCTIONS =====================
@@ -285,16 +286,24 @@ def admin_login():
 
 
 def show_admin_panel():
-    """Panel admin untuk mengelola stok"""
+    """Panel admin untuk mengelola stok dan produk"""
     admin_window = tk.Toplevel(root)
-    admin_window.title("Admin Panel - Kelola Stok")
-    admin_window.geometry("400x500")
+    admin_window.title("Admin Panel - Kelola Produk")
+    admin_window.geometry("600x600")
     admin_window.configure(bg="#f0f0f0")
     
-    Label(admin_window, text="ADMIN PANEL", font=("Arial", 16, "bold"), 
+    # Notebook untuk tab
+    notebook = ttk.Notebook(admin_window)
+    notebook.pack(fill="both", expand=True, padx=10, pady=10)
+    
+    # ===== TAB KELOLA STOK =====
+    stock_frame = Frame(notebook, bg="#f0f0f0")
+    notebook.add(stock_frame, text="Kelola Stok")
+    
+    Label(stock_frame, text="KELOLA STOK PRODUK", font=("Arial", 16, "bold"), 
           bg="#f0f0f0").pack(pady=10)
     
-    products_frame = Frame(admin_window, bg="white", relief="solid", bd=1)
+    products_frame = Frame(stock_frame, bg="white", relief="solid", bd=1)
     products_frame.pack(fill="both", expand=True, padx=20, pady=10)
     
     header_frame = Frame(products_frame, bg="#e0e0e0")
@@ -325,11 +334,9 @@ def show_admin_panel():
             current = int(lbl.cget("text"))
             new_stock = current + 1
             lbl.config(text=str(new_stock))
-            # Update di list products
             if 0 <= idx < len(products):
                 products[idx]["stock"] = new_stock
                 products[idx]["stock_display"] = f"Stok {new_stock}"
-            # Update label di main window
             if 0 <= idx < len(product_stock_labels):
                 product_stock_labels[idx].config(text=f"Stok {new_stock}")
         
@@ -338,11 +345,9 @@ def show_admin_panel():
             if current > 0:
                 new_stock = current - 1
                 lbl.config(text=str(new_stock))
-                # Update di list products
                 if 0 <= idx < len(products):
                     products[idx]["stock"] = new_stock
                     products[idx]["stock_display"] = f"Stok {new_stock}"
-                # Update label di main window
                 if 0 <= idx < len(product_stock_labels):
                     product_stock_labels[idx].config(text=f"Stok {new_stock}")
         
@@ -350,6 +355,142 @@ def show_admin_panel():
                command=add_stock).pack(side="left", padx=2)
         Button(product_frame, text="-", width=3, bg="red", fg="white",
                command=remove_stock).pack(side="left", padx=2)
+    
+    # ===== TAB TAMBAH PRODUK =====
+    add_frame = Frame(notebook, bg="#f0f0f0")
+    notebook.add(add_frame, text="Tambah Produk")
+    
+    Label(add_frame, text="TAMBAH PRODUK BARU", font=("Arial", 16, "bold"), 
+          bg="#f0f0f0").pack(pady=10)
+    
+    form_frame = Frame(add_frame, bg="white", relief="solid", bd=1)
+    form_frame.pack(fill="x", padx=20, pady=10)
+    
+    # Nama Produk
+    Label(form_frame, text="Nama Produk:", font=("Arial", 10), 
+          bg="white").grid(row=0, column=0, sticky="w", padx=10, pady=10)
+    name_var = tk.StringVar()
+    name_entry = Entry(form_frame, textvariable=name_var, font=("Arial", 10), width=30)
+    name_entry.grid(row=0, column=1, padx=10, pady=10)
+    
+    # Harga
+    Label(form_frame, text="Harga (Rp):", font=("Arial", 10), 
+          bg="white").grid(row=1, column=0, sticky="w", padx=10, pady=10)
+    price_var = tk.StringVar()
+    price_entry = Entry(form_frame, textvariable=price_var, font=("Arial", 10), width=30)
+    price_entry.grid(row=1, column=1, padx=10, pady=10)
+    
+    # Stok Awal
+    Label(form_frame, text="Stok Awal:", font=("Arial", 10), 
+          bg="white").grid(row=2, column=0, sticky="w", padx=10, pady=10)
+    stock_var = tk.StringVar(value="0")
+    stock_entry = Entry(form_frame, textvariable=stock_var, font=("Arial", 10), width=30)
+    stock_entry.grid(row=2, column=1, padx=10, pady=10)
+    
+    # Info Gambar
+    Label(form_frame, text="Info Gambar:", font=("Arial", 10), 
+          bg="white").grid(row=3, column=0, sticky="w", padx=10, pady=10)
+    image_info = Label(form_frame, text="Simpan gambar di folder 'images' dengan nama yang sama\nFormat: PNG, JPG, JPEG", 
+                       font=("Arial", 8), bg="white", justify="left", fg="gray")
+    image_info.grid(row=3, column=1, padx=10, pady=10, sticky="w")
+    
+    def add_new_product():
+        name = name_var.get().strip()
+        price = price_var.get().strip()
+        stock = stock_var.get().strip()
+        
+        if not name or not price or not stock:
+            messagebox.showwarning("Input Error", "Semua field harus diisi!")
+            return
+        
+        try:
+            price_int = int(price)
+            stock_int = int(stock)
+            
+            if price_int <= 0:
+                messagebox.showwarning("Input Error", "Harga harus lebih dari 0!")
+                return
+            
+            if stock_int < 0:
+                messagebox.showwarning("Input Error", "Stok tidak boleh negatif!")
+                return
+            
+            # Tambah produk ke database
+            product_id = add_product(name, price_int, stock_int)
+            
+            if product_id:
+                messagebox.showinfo("Berhasil", f"Produk '{name}' berhasil ditambahkan!")
+                name_var.set("")
+                price_var.set("")
+                stock_var.set("0")
+                admin_window.destroy()
+                refresh_product_display()
+            else:
+                messagebox.showerror("Error", "Gagal menambahkan produk!")
+                
+        except ValueError:
+            messagebox.showerror("Input Error", "Harga dan Stok harus angka!")
+    
+    Button(add_frame, text="Tambah Produk", font=("Arial", 12),
+           bg="#4CAF50", fg="white", command=add_new_product).pack(pady=10)
+    
+    # ===== TAB EDIT PRODUK =====
+    edit_frame = Frame(notebook, bg="#f0f0f0")
+    notebook.add(edit_frame, text="Edit Produk")
+    
+    Label(edit_frame, text="EDIT PRODUK", font=("Arial", 16, "bold"), 
+          bg="#f0f0f0").pack(pady=10)
+    
+    # Frame untuk daftar produk
+    edit_list_frame = Frame(edit_frame, bg="white", relief="solid", bd=1)
+    edit_list_frame.pack(fill="both", expand=True, padx=20, pady=10)
+    
+    # Header
+    header_edit = Frame(edit_list_frame, bg="#e0e0e0")
+    header_edit.pack(fill="x")
+    Label(header_edit, text="ID", width=5, font=("Arial", 10, "bold"), 
+          bg="#e0e0e0").pack(side="left", padx=5)
+    Label(header_edit, text="Nama", width=20, font=("Arial", 10, "bold"), 
+          bg="#e0e0e0").pack(side="left", padx=5)
+    Label(header_edit, text="Harga", width=10, font=("Arial", 10, "bold"), 
+          bg="#e0e0e0").pack(side="left", padx=5)
+    Label(header_edit, text="Stok", width=10, font=("Arial", 10, "bold"), 
+          bg="#e0e0e0").pack(side="left", padx=5)
+    Label(header_edit, text="Aksi", width=15, font=("Arial", 10, "bold"), 
+          bg="#e0e0e0").pack(side="left", padx=5)
+    
+    # Daftar produk untuk edit
+    for prod_data in products:
+        product_frame = Frame(edit_list_frame, bg="white")
+        product_frame.pack(fill="x", pady=2)
+        
+        Label(product_frame, text=str(prod_data["id"]), width=5, 
+              bg="white").pack(side="left", padx=5)
+        Label(product_frame, text=prod_data["name"], width=20, anchor="w",
+              bg="white").pack(side="left", padx=5)
+        Label(product_frame, text=f"Rp {prod_data['price']:,}", width=10,
+              bg="white").pack(side="left", padx=5)
+        Label(product_frame, text=str(prod_data["stock"]), width=10,
+              bg="white").pack(side="left", padx=5)
+        
+        def edit_selected(prod_id=prod_data["id"]):
+            edit_product_window(prod_id)
+        
+        def delete_selected(prod_id=prod_data["id"], prod_name=prod_data["name"]):
+            confirm = messagebox.askyesno("Konfirmasi", 
+                                          f"Apakah Anda yakin ingin menghapus produk '{prod_name}'?")
+            if confirm:
+                if delete_product(prod_id):
+                    messagebox.showinfo("Berhasil", "Produk berhasil dihapus!")
+                    admin_window.destroy()
+                    refresh_product_display()
+                else:
+                    messagebox.showerror("Error", "Gagal menghapus produk!")
+        
+        Button(product_frame, text="Edit", width=5, bg="#3498db", fg="white",
+               command=edit_selected).pack(side="left", padx=2)
+        Button(product_frame, text="Hapus", width=5, bg="#e74c3c", fg="white",
+               command=delete_selected).pack(side="left", padx=2)
     
     def save_changes():
         try:
@@ -362,12 +503,144 @@ def show_admin_panel():
             
             messagebox.showinfo("Berhasil", "Perubahan stok berhasil disimpan!")
             admin_window.destroy()
+            refresh_product_display()
         except Exception as e:
             messagebox.showerror("Error", f"Gagal menyimpan: {e}")
     
-    Button(admin_window, text="Simpan Perubahan", font=("Arial", 12),
+    Button(admin_window, text="Simpan Semua Perubahan", font=("Arial", 12),
            bg="#4CAF50", fg="white", command=save_changes).pack(pady=10)
+
+def edit_product_window(product_id):
+    """Window untuk edit detail produk"""
+    edit_window = tk.Toplevel(root)
+    edit_window.title(f"Edit Produk - ID: {product_id}")
+    edit_window.geometry("400x400")
+    edit_window.configure(bg="#f0f0f0")
     
+    # Cari produk berdasarkan ID
+    product = None
+    for prod in products:
+        if prod["id"] == product_id:
+            product = prod
+            break
+    
+    if not product:
+        messagebox.showerror("Error", "Produk tidak ditemukan!")
+        edit_window.destroy()
+        return
+    
+    Label(edit_window, text=f"EDIT PRODUK: {product['name']}", 
+          font=("Arial", 14, "bold"), bg="#f0f0f0").pack(pady=10)
+    
+    form_frame = Frame(edit_window, bg="white", relief="solid", bd=1)
+    form_frame.pack(fill="both", padx=20, pady=10)
+    
+    # Nama Produk
+    Label(form_frame, text="Nama Produk:", font=("Arial", 10), 
+          bg="white").grid(row=0, column=0, sticky="w", padx=10, pady=10)
+    name_var = tk.StringVar(value=product["name"])
+    name_entry = Entry(form_frame, textvariable=name_var, font=("Arial", 10), width=30)
+    name_entry.grid(row=0, column=1, padx=10, pady=10)
+    
+    # Harga
+    Label(form_frame, text="Harga (Rp):", font=("Arial", 10), 
+          bg="white").grid(row=1, column=0, sticky="w", padx=10, pady=10)
+    price_var = tk.StringVar(value=str(product["price"]))
+    price_entry = Entry(form_frame, textvariable=price_var, font=("Arial", 10), width=30)
+    price_entry.grid(row=1, column=1, padx=10, pady=10)
+    
+    # Stok
+    Label(form_frame, text="Stok:", font=("Arial", 10), 
+          bg="white").grid(row=2, column=0, sticky="w", padx=10, pady=10)
+    stock_var = tk.StringVar(value=str(product["stock"]))
+    stock_entry = Entry(form_frame, textvariable=stock_var, font=("Arial", 10), width=30)
+    stock_entry.grid(row=2, column=1, padx=10, pady=10)
+    
+    # Info Gambar
+    Label(form_frame, text="Gambar Saat Ini:", font=("Arial", 10), 
+          bg="white").grid(row=3, column=0, sticky="w", padx=10, pady=10)
+    
+    existing_images = get_product_image_extensions(product["name"])
+    if existing_images:
+        image_info = Label(form_frame, text=f"Format tersedia: {', '.join(existing_images)}", 
+                          font=("Arial", 8), bg="white", justify="left", fg="green")
+    else:
+        image_info = Label(form_frame, text="Tidak ada gambar ditemukan\nSimpan dengan nama yang sama di folder 'images'", 
+                          font=("Arial", 8), bg="white", justify="left", fg="red")
+    image_info.grid(row=3, column=1, padx=10, pady=10, sticky="w")
+    
+    def save_edit():
+        new_name = name_var.get().strip()
+        new_price = price_var.get().strip()
+        new_stock = stock_var.get().strip()
+        
+        if not new_name or not new_price or not new_stock:
+            messagebox.showwarning("Input Error", "Semua field harus diisi!")
+            return
+        
+        try:
+            price_int = int(new_price)
+            stock_int = int(new_stock)
+            
+            if price_int <= 0:
+                messagebox.showwarning("Input Error", "Harga harus lebih dari 0!")
+                return
+            
+            if stock_int < 0:
+                messagebox.showwarning("Input Error", "Stok tidak boleh negatif!")
+                return
+            
+            # Update produk
+            success = update_product(product_id, new_name, price_int, stock_int)
+            
+            if success:
+                messagebox.showinfo("Berhasil", "Produk berhasil diupdate!")
+                edit_window.destroy()
+                refresh_product_display()
+            else:
+                messagebox.showerror("Error", "Gagal mengupdate produk!")
+                
+        except ValueError:
+            messagebox.showerror("Input Error", "Harga dan Stok harus angka!")
+    
+    Button(edit_window, text="Simpan Perubahan", font=("Arial", 12),
+           bg="#4CAF50", fg="white", command=save_edit).pack(pady=10)
+    
+    Button(edit_window, text="Batal", font=("Arial", 12),
+           bg="#f44336", fg="white", command=edit_window.destroy).pack(pady=5)
+
+def refresh_product_display():
+    """Refresh tampilan produk di main window"""
+    global products, product_cards, product_stock_labels
+    
+    # Reload produk dari database
+    load_products()
+    
+    # Hapus widget lama
+    for widget in items_frame.winfo_children():
+        widget.destroy()
+    
+    # Reset lists
+    product_cards = []
+    product_stock_labels = []
+    
+    # Buat ulang produk display
+    row = 0
+    col = 0
+    
+    for i, product in enumerate(products):
+        item, stock_label = create_item(items_frame, product, i)
+        item.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+        product_cards.append(item)
+        product_stock_labels.append(stock_label)
+        
+        col += 1
+        if col == 3:
+            col = 0
+            row += 1
+    
+    # Update layout
+    resize()
 
 # ===================== PANEL KIRI =====================
 left_panel = Frame(root, bg="#00B4D8")
@@ -390,8 +663,8 @@ items_frame.pack(pady=8)
 def create_item(parent, product_dict, index):
     product_id = product_dict["id"]
     name = product_dict["name"]
-    price = product_dict["price"]
-    stock = product_dict["stock"]
+    price = product_dict["price_display"]
+    stock = product_dict["stock_display"]
 
     frame = Frame(parent, bg="white", highlightthickness=1, highlightbackground="#0077b6")
     frame.pack_propagate(False)

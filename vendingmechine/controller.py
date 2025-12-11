@@ -2,6 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 import tkinter as tk
 from tkinter import messagebox
+import os
 
 # ===================== VARIABEL GLOBAL =====================
 products = []  # Akan diisi dari database
@@ -13,7 +14,7 @@ def getConnection():
             host="localhost",
             user="root",
             passwd="",
-            database="vending-machine",
+            database="vending_machine",
             port=3306
         )
         return conn
@@ -120,3 +121,103 @@ def get_admin_password():
                 connection.close()
             return None
     return None
+
+# ===================== FUNGSI CRUD PRODUK =====================
+def add_product(name, price, stock):
+    """Menambahkan produk baru ke database"""
+    connection = getConnection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute(
+                "INSERT INTO product (name, harga, qty) VALUES (%s, %s, %s)",
+                (name, price, stock)
+            )
+            connection.commit()
+            product_id = cursor.lastrowid
+            cursor.close()
+            connection.close()
+            
+            # Reload products
+            load_products()
+            return product_id
+        except Error as e:
+            messagebox.showerror("Database Error", f"Gagal menambahkan produk: {e}")
+            if connection:
+                connection.close()
+            return None
+    return None
+
+def update_product(product_id, name=None, price=None, stock=None):
+    """Update data produk di database"""
+    connection = getConnection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            
+            # Build dynamic update query
+            update_fields = []
+            values = []
+            
+            if name is not None:
+                update_fields.append("name = %s")
+                values.append(name)
+            if price is not None:
+                update_fields.append("harga = %s")
+                values.append(price)
+            if stock is not None:
+                update_fields.append("qty = %s")
+                values.append(stock)
+            
+            if update_fields:
+                values.append(product_id)
+                query = f"UPDATE product SET {', '.join(update_fields)} WHERE id = %s"
+                cursor.execute(query, values)
+                connection.commit()
+            
+            cursor.close()
+            connection.close()
+            
+            # Reload products
+            load_products()
+            return True
+        except Error as e:
+            messagebox.showerror("Database Error", f"Gagal update produk: {e}")
+            if connection:
+                connection.close()
+            return False
+    return False
+
+def delete_product(product_id):
+    """Menghapus produk dari database"""
+    connection = getConnection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute("DELETE FROM product WHERE id = %s", (product_id,))
+            connection.commit()
+            cursor.close()
+            connection.close()
+            
+            # Reload products
+            load_products()
+            return True
+        except Error as e:
+            messagebox.showerror("Database Error", f"Gagal menghapus produk: {e}")
+            if connection:
+                connection.close()
+            return False
+    return False
+
+def get_product_image_extensions(name):
+    """Mendapatkan ekstensi file gambar yang tersedia untuk produk"""
+    folder = "images"
+    possible_ext = [".png", ".jpg", ".jpeg", ".PNG", ".JPG", ".JPEG"]
+    existing_images = []
+    
+    for ext in possible_ext:
+        path = os.path.join(folder, name + ext)
+        if os.path.exists(path):
+            existing_images.append(ext)
+    
+    return existing_images
