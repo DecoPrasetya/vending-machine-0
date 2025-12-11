@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 09 Des 2025 pada 06.04
--- Versi server: 10.4.32-MariaDB
--- Versi PHP: 8.2.12
+-- Generation Time: Dec 11, 2025 at 09:34 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,13 +18,13 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `vending_machine`
+-- Database: `vending-machine`
 --
 
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `admin`
+-- Table structure for table `admin`
 --
 
 CREATE TABLE `admin` (
@@ -32,7 +32,7 @@ CREATE TABLE `admin` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `admin`
+-- Dumping data for table `admin`
 --
 
 INSERT INTO `admin` (`password`) VALUES
@@ -41,21 +41,21 @@ INSERT INTO `admin` (`password`) VALUES
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `product`
+-- Table structure for table `products`
 --
 
-CREATE TABLE `product` (
-  `id` int(11) NOT NULL,
-  `name` text NOT NULL,
-  `qty` int(11) NOT NULL,
-  `harga` int(11) NOT NULL
+CREATE TABLE `products` (
+  `id` int(50) NOT NULL,
+  `name` varchar(225) NOT NULL,
+  `qty` int(50) NOT NULL,
+  `harga` int(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `product`
+-- Dumping data for table `products`
 --
 
-INSERT INTO `product` (`id`, `name`, `qty`, `harga`) VALUES
+INSERT INTO `products` (`id`, `name`, `qty`, `harga`) VALUES
 (1, 'Coca-cola', 10, 8000),
 (2, 'Aqua', 10, 5000),
 (3, 'Bintang', 10, 20000),
@@ -65,26 +65,6 @@ INSERT INTO `product` (`id`, `name`, `qty`, `harga`) VALUES
 (7, 'Iceland', 10, 120000),
 (8, 'Nescafe', 10, 10000),
 (9, 'Vodka', 10, 500000);
-
---
--- Indexes for dumped tables
---
-
---
--- Indeks untuk tabel `product`
---
-ALTER TABLE `product`
-  ADD PRIMARY KEY (`id`);
-
---
--- AUTO_INCREMENT untuk tabel yang dibuang
---
-
---
--- AUTO_INCREMENT untuk tabel `product`
---
-ALTER TABLE `product`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

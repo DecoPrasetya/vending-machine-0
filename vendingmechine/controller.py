@@ -14,7 +14,7 @@ def getConnection():
             host="localhost",
             user="root",
             passwd="",
-            database="vending_machine",
+            database="vending-machine",
             port=3306
         )
         return conn
@@ -31,7 +31,7 @@ def load_products():
     if connection:
         try:
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM product ORDER BY id")
+            cursor.execute("SELECT * FROM products ORDER BY id")
             rows = cursor.fetchall()
             
             for row in rows:
@@ -74,7 +74,7 @@ def update_stock(product_id, new_stock):
     if connection:
         try:
             cursor = connection.cursor()
-            cursor.execute("UPDATE product SET qty = %s WHERE id = %s", (new_stock, product_id))
+            cursor.execute("UPDATE products SET qty = %s WHERE id = %s", (new_stock, product_id))
             connection.commit()
             cursor.close()
             connection.close()
@@ -92,7 +92,7 @@ def get_product_by_id(product_id):
     if connection:
         try:
             cursor = connection.cursor()
-            cursor.execute("SELECT name, harga, qty FROM product WHERE id = %s", (product_id,))
+            cursor.execute("SELECT name, harga, qty FROM products WHERE id = %s", (product_id,))
             product = cursor.fetchone()
             cursor.close()
             connection.close()
@@ -130,7 +130,7 @@ def add_product(name, price, stock):
         try:
             cursor = connection.cursor()
             cursor.execute(
-                "INSERT INTO product (name, harga, qty) VALUES (%s, %s, %s)",
+                "INSERT INTO products (name, harga, qty) VALUES (%s, %s, %s)",
                 (name, price, stock)
             )
             connection.commit()
@@ -171,7 +171,7 @@ def update_product(product_id, name=None, price=None, stock=None):
             
             if update_fields:
                 values.append(product_id)
-                query = f"UPDATE product SET {', '.join(update_fields)} WHERE id = %s"
+                query = f"UPDATE products SET {', '.join(update_fields)} WHERE id = %s"
                 cursor.execute(query, values)
                 connection.commit()
             
@@ -194,7 +194,7 @@ def delete_product(product_id):
     if connection:
         try:
             cursor = connection.cursor()
-            cursor.execute("DELETE FROM product WHERE id = %s", (product_id,))
+            cursor.execute("DELETE FROM products WHERE id = %s", (product_id,))
             connection.commit()
             cursor.close()
             connection.close()
