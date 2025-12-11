@@ -15,47 +15,15 @@ def get_product_by_id(product_id):
             return product
     return None
 
-def get_product_by_index(index):
-    """Mendapatkan produk berdasarkan index di list"""
-    if 0 <= index < len(products):  
-        return products[index]
-    return None
-
-def update_product_stock_by_id(product_id, new_stock):
-    """Update stok produk berdasarkan ID"""
-    for product in products: 
-        if product["id"] == product_id:
-            product["stock"] = new_stock  
-            product["stock_display"] = f"Stok {new_stock}"
-            return True
-    return False
-
-
-def update_product_stock_by_index(index, new_stock):
-    """Update stok produk berdasarkan index"""
-    if 0 <= index < len(products):
-        products[index]["stock"] = f"Stok {new_stock}"
-        return True
-    return False
-
-
 def get_product_name_by_id(product_id):
     """Mendapatkan nama produk berdasarkan ID"""
     product = get_product_by_id(product_id)
     return product["name"] if product else None
 
-
 def get_product_price_by_id(product_id):
     """Mendapatkan harga produk berdasarkan ID"""
     product = get_product_by_id(product_id)
     return product["price"] if product else 0
-
-
-def get_product_stock_by_id(product_id):
-    """Mendapatkan stok produk berdasarkan ID"""
-    product = get_product_by_id(product_id)
-    return product["stock"] if product else None
-
 
 # ===================== INITIAL SETUP =====================
 root = tk.Tk()
@@ -284,77 +252,82 @@ def admin_login():
     elif password is not None:
         messagebox.showerror("Login Gagal", "Password salah!")
 
-
 def show_admin_panel():
-    """Panel admin untuk mengelola stok dan produk"""
+    """Panel admin """
     admin_window = tk.Toplevel(root)
     admin_window.title("Admin Panel - Kelola Produk")
-    admin_window.geometry("600x600")
+    admin_window.geometry("700x600")
     admin_window.configure(bg="#f0f0f0")
-    
-    # Notebook untuk tab
+
+    # Notebook
     notebook = ttk.Notebook(admin_window)
     notebook.pack(fill="both", expand=True, padx=10, pady=10)
-    
-    # ===== TAB KELOLA STOK =====
-    stock_frame = Frame(notebook, bg="#f0f0f0")
-    notebook.add(stock_frame, text="Kelola Stok")
-    
-    Label(stock_frame, text="KELOLA STOK PRODUK", font=("Arial", 16, "bold"), 
-          bg="#f0f0f0").pack(pady=10)
-    
-    products_frame = Frame(stock_frame, bg="white", relief="solid", bd=1)
-    products_frame.pack(fill="both", expand=True, padx=20, pady=10)
-    
-    header_frame = Frame(products_frame, bg="#e0e0e0")
-    header_frame.pack(fill="x", pady=(5, 0))
-    Label(header_frame, text="Produk", width=20, font=("Arial", 10, "bold"), 
-          bg="#e0e0e0").pack(side="left", padx=5)
-    Label(header_frame, text="Stok", width=15, font=("Arial", 10, "bold"), 
-          bg="#e0e0e0").pack(side="left", padx=5)
-    Label(header_frame, text="Aksi", width=10, font=("Arial", 10, "bold"), 
-          bg="#e0e0e0").pack(side="left", padx=5)
-    
-    for i, prod_data in enumerate(products): 
-        product_id = prod_data["id"]
-        name = prod_data["name"]
-        current_stock = prod_data["stock"]
-        
-        product_frame = Frame(products_frame, bg="white")
-        product_frame.pack(fill="x", pady=2)
-        
-        Label(product_frame, text=name, width=20, anchor="w", 
-              bg="white").pack(side="left", padx=5)
-        
-        stock_label = Label(product_frame, text=str(current_stock), width=15, 
-                           bg="white")
+
+    # ===================== TAB KELOLA PRODUK  =====================
+    manage_frame = Frame(notebook, bg="#f0f0f0")
+    notebook.add(manage_frame, text="Kelola Produk")
+
+    Label(manage_frame, text="KELOLA PRODUK", font=("Arial", 16, "bold"), bg="#f0f0f0").pack(pady=10)
+
+    product_list_frame = Frame(manage_frame, bg="white", relief="solid", bd=1)
+    product_list_frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+    # Header
+    header = Frame(product_list_frame, bg="#e0e0e0")
+    header.pack(fill="x")
+    Label(header, text="Nama", width=20, font=("Arial", 10, "bold"), bg="#e0e0e0").pack(side="left", padx=5)
+    Label(header, text="Harga", width=10, font=("Arial", 10, "bold"), bg="#e0e0e0").pack(side="left", padx=5)
+    Label(header, text="Stok", width=7, font=("Arial", 10, "bold"), bg="#e0e0e0").pack(side="left", padx=5)
+    Label(header, text="Aksi", width=25, font=("Arial", 10, "bold"), bg="#e0e0e0").pack(side="left", padx=5)
+
+    for i, prod_data in enumerate(products):
+        product_frame = Frame(product_list_frame, bg="white")
+        product_frame.pack(fill="x", pady=3)
+
+        Label(product_frame, text=prod_data["name"], width=20, anchor="w", bg="white").pack(side="left", padx=5)
+        Label(product_frame, text=f"Rp {prod_data['price']:,}", width=10, bg="white").pack(side="left", padx=5)
+
+        stock_label = Label(product_frame, text=str(prod_data["stock"]), width=7, bg="white")
         stock_label.pack(side="left", padx=5)
-        
-        def add_stock(idx=i, lbl=stock_label, prod_id=product_id):
-            current = int(lbl.cget("text"))
-            new_stock = current + 1
-            lbl.config(text=str(new_stock))
-            if 0 <= idx < len(products):
-                products[idx]["stock"] = new_stock
-                products[idx]["stock_display"] = f"Stok {new_stock}"
-            if 0 <= idx < len(product_stock_labels):
-                product_stock_labels[idx].config(text=f"Stok {new_stock}")
-        
-        def remove_stock(idx=i, lbl=stock_label, prod_id=product_id):
+
+        # Fungsi tombol stok
+        def add_stock(idx=i, lbl=stock_label):
+            new = int(lbl.cget("text")) + 1
+            lbl.config(text=str(new))
+            products[idx]["stock"] = new
+            products[idx]["stock_display"] = f"Stok {new}"
+
+        def remove_stock(idx=i, lbl=stock_label):
             current = int(lbl.cget("text"))
             if current > 0:
-                new_stock = current - 1
-                lbl.config(text=str(new_stock))
-                if 0 <= idx < len(products):
-                    products[idx]["stock"] = new_stock
-                    products[idx]["stock_display"] = f"Stok {new_stock}"
-                if 0 <= idx < len(product_stock_labels):
-                    product_stock_labels[idx].config(text=f"Stok {new_stock}")
-        
+                new = current - 1
+                lbl.config(text=str(new))
+                products[idx]["stock"] = new
+                products[idx]["stock_display"] = f"Stok {new}"
+
         Button(product_frame, text="+", width=3, bg="green", fg="white",
-               command=add_stock).pack(side="left", padx=2)
+               command=add_stock).pack(side="left", padx=3)
         Button(product_frame, text="-", width=3, bg="red", fg="white",
-               command=remove_stock).pack(side="left", padx=2)
+               command=remove_stock).pack(side="left", padx=3)
+
+        # Tombol Edit
+        def edit_selected(pid=prod_data["id"]):
+            edit_product_window(pid)
+
+        Button(product_frame, text="Edit", width=5, bg="#3498db", fg="white",
+               command=edit_selected).pack(side="left", padx=3)
+
+        # Tombol Hapus
+        def delete_selected(pid=prod_data["id"], name=prod_data["name"]):
+            confirm = messagebox.askyesno("Konfirmasi", f"Hapus produk '{name}'?")
+            if confirm:
+                if delete_product(pid):
+                    messagebox.showinfo("Berhasil", "Produk dihapus.")
+                    admin_window.destroy()
+                    refresh_product_display()
+
+        Button(product_frame, text="Hapus", width=6, bg="#e74c3c", fg="white",
+               command=delete_selected).pack(side="left", padx=3)
     
     # ===== TAB TAMBAH PRODUK =====
     add_frame = Frame(notebook, bg="#f0f0f0")
@@ -434,64 +407,7 @@ def show_admin_panel():
     Button(add_frame, text="Tambah Produk", font=("Arial", 12),
            bg="#4CAF50", fg="white", command=add_new_product).pack(pady=10)
     
-    # ===== TAB EDIT PRODUK =====
-    edit_frame = Frame(notebook, bg="#f0f0f0")
-    notebook.add(edit_frame, text="Edit Produk")
-    
-    Label(edit_frame, text="EDIT PRODUK", font=("Arial", 16, "bold"), 
-          bg="#f0f0f0").pack(pady=10)
-    
-    # Frame untuk daftar produk
-    edit_list_frame = Frame(edit_frame, bg="white", relief="solid", bd=1)
-    edit_list_frame.pack(fill="both", expand=True, padx=20, pady=10)
-    
-    # Header
-    header_edit = Frame(edit_list_frame, bg="#e0e0e0")
-    header_edit.pack(fill="x")
-    Label(header_edit, text="ID", width=5, font=("Arial", 10, "bold"), 
-          bg="#e0e0e0").pack(side="left", padx=5)
-    Label(header_edit, text="Nama", width=20, font=("Arial", 10, "bold"), 
-          bg="#e0e0e0").pack(side="left", padx=5)
-    Label(header_edit, text="Harga", width=10, font=("Arial", 10, "bold"), 
-          bg="#e0e0e0").pack(side="left", padx=5)
-    Label(header_edit, text="Stok", width=10, font=("Arial", 10, "bold"), 
-          bg="#e0e0e0").pack(side="left", padx=5)
-    Label(header_edit, text="Aksi", width=15, font=("Arial", 10, "bold"), 
-          bg="#e0e0e0").pack(side="left", padx=5)
-    
-    # Daftar produk untuk edit
-    for prod_data in products:
-        product_frame = Frame(edit_list_frame, bg="white")
-        product_frame.pack(fill="x", pady=2)
-        
-        Label(product_frame, text=str(prod_data["id"]), width=5, 
-              bg="white").pack(side="left", padx=5)
-        Label(product_frame, text=prod_data["name"], width=20, anchor="w",
-              bg="white").pack(side="left", padx=5)
-        Label(product_frame, text=f"Rp {prod_data['price']:,}", width=10,
-              bg="white").pack(side="left", padx=5)
-        Label(product_frame, text=str(prod_data["stock"]), width=10,
-              bg="white").pack(side="left", padx=5)
-        
-        def edit_selected(prod_id=prod_data["id"]):
-            edit_product_window(prod_id)
-        
-        def delete_selected(prod_id=prod_data["id"], prod_name=prod_data["name"]):
-            confirm = messagebox.askyesno("Konfirmasi", 
-                                          f"Apakah Anda yakin ingin menghapus produk '{prod_name}'?")
-            if confirm:
-                if delete_product(prod_id):
-                    messagebox.showinfo("Berhasil", "Produk berhasil dihapus!")
-                    admin_window.destroy()
-                    refresh_product_display()
-                else:
-                    messagebox.showerror("Error", "Gagal menghapus produk!")
-        
-        Button(product_frame, text="Edit", width=5, bg="#3498db", fg="white",
-               command=edit_selected).pack(side="left", padx=2)
-        Button(product_frame, text="Hapus", width=5, bg="#e74c3c", fg="white",
-               command=delete_selected).pack(side="left", padx=2)
-    
+
     def save_changes():
         try:
             for prod_data in products:

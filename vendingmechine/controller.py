@@ -221,3 +221,4 @@ def get_product_image_extensions(name):
             existing_images.append(ext)
     
     return existing_images
+
