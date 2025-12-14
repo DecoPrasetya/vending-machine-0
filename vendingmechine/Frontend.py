@@ -1,6 +1,6 @@
 import os
 import tkinter as tk
-from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text, simpledialog, Entry, filedialog  # <-- Tambah filedialog
+from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text, simpledialog, Entry, filedialog 
 from tkinter import ttk
 from collections import Counter
 from PIL import Image, ImageTk
@@ -98,7 +98,7 @@ def load_image_auto(name):
                 print(f"[ERROR] Gagal load gambar: {path}")
                 return None
 
-    # Jika gambar tidak ditemukan, buat placeholder
+    # Jika gambar tidak ditemukan
     print(f"[WARNING] Gambar tidak ditemukan: {name}")
     return None
 
@@ -132,7 +132,6 @@ def select_product(product_id, stock_label, index):
         messagebox.showerror("Error", "Produk tidak ditemukan!")
         return
     
-    # Ambil stok dari dictionary, bukan dari label
     current_stock = product["stock"]  
     
     if current_stock <= 0:
@@ -261,7 +260,7 @@ def process_payment():
     for name, count in counter.items():
         # Cari harga produk
         unit_price = 0
-        for prod in products:  # Gunakan products
+        for prod in products:  
             if prod["name"] == name:
                 unit_price = prod["price"]
                 break
