@@ -95,26 +95,6 @@ def update_stock(product_id, new_stock):
             return False
     return False
 
-
-def get_product_by_id(product_id):
-    """Mendapatkan informasi produk berdasarkan ID"""
-    connection = getConnection()
-    if connection:
-        try:
-            cursor = connection.cursor()
-            cursor.execute("SELECT name, harga, qty FROM products WHERE id = %s", (product_id,))
-            product = cursor.fetchone()
-            cursor.close()
-            connection.close()
-            return product
-        except Error as e:
-            messagebox.showerror("Database Error", f"Gagal mengambil data produk: {e}")
-            if connection:
-                connection.close()
-            return None
-    return None
-
-
 def get_admin_password():
     """Ambil password admin dari database"""
     connection = getConnection()
