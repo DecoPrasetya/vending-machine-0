@@ -1,29 +1,36 @@
 import os
+import shutil
 import tkinter as tk
-from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text, simpledialog, Entry, filedialog 
-from tkinter import ttk
 from collections import Counter
+from tkinter import Frame, Label, Button, messagebox, Scrollbar, Text, simpledialog, Entry, filedialog
+from tkinter import ttk
+
 from PIL import Image, ImageTk
-from controller import products, update_stock, load_products, get_admin_password, add_product, update_product, delete_product, get_product_image_extensions
-import shutil 
+
+from controller import update_stock, load_products, get_admin_password, add_product, update_product, \
+    delete_product, get_product_image_extensions, get_products  # TAMBAHKAN get_products
+
 
 # ===================== HELPER FUNCTIONS =====================
 def get_product_by_id(product_id):
     """Mendapatkan produk berdasarkan ID"""
-    for product in products:  
+    for product in products:
         if product["id"] == product_id:
             return product
     return None
+
 
 def get_product_name_by_id(product_id):
     """Mendapatkan nama produk berdasarkan ID"""
     product = get_product_by_id(product_id)
     return product["name"] if product else None
 
+
 def get_product_price_by_id(product_id):
     """Mendapatkan harga produk berdasarkan ID"""
     product = get_product_by_id(product_id)
     return product["price"] if product else 0
+
 
 def upload_image(product_name):
     """Fungsi untuk upload gambar produk"""
@@ -31,24 +38,24 @@ def upload_image(product_name):
         ('Image files', '*.png *.jpg *.jpeg *.PNG *.JPG *.JPEG'),
         ('All files', '*.*')
     ]
-    
+
     filepath = filedialog.askopenfilename(
         title="Pilih Gambar Produk",
         filetypes=filetypes
     )
-    
+
     if filepath:
         # Cek apakah folder images ada
         if not os.path.exists("images"):
             os.makedirs("images")
-        
+
         # Dapatkan ekstensi file
         _, ext = os.path.splitext(filepath)
-        
+
         # Nama file baru (gunakan nama produk)
         new_filename = product_name + ext.lower()
         destination = os.path.join("images", new_filename)
-        
+
         try:
             # Copy file ke folder images
             shutil.copy2(filepath, destination)
@@ -57,8 +64,9 @@ def upload_image(product_name):
         except Exception as e:
             messagebox.showerror("Error", f"Gagal mengupload gambar: {str(e)}")
             return False
-    
+
     return False
+
 
 # ===================== INITIAL SETUP =====================
 root = tk.Tk()
@@ -80,7 +88,15 @@ total_price_var = tk.StringVar(value="TOTAL: Rp 0")
 product_cards = []
 product_stock_labels = []
 
+# MUAT PRODUK DARI CONTROLLER
+load_products()  # Pertama, muat produk ke database
+products = get_products()  # Kemudian dapatkan list produk dari controller
 
+print(f"DEBUG: Total products loaded: {len(products)}")  # Debug print
+if products:
+    print(f"DEBUG: First product: {products[0]}")  # Debug print
+
+ 
 # ===================== FUNGSI LOAD GAMBAR =====================
 def load_image_auto(name):
     """Load gambar produk dari folder images"""
@@ -92,7 +108,7 @@ def load_image_auto(name):
         if os.path.exists(path):
             try:
                 img = Image.open(path)
-                img = img.resize((50, 50)) 
+                img = img.resize((50, 50))
                 return ImageTk.PhotoImage(img)
             except:
                 print(f"[ERROR] Gagal load gambar: {path}")
@@ -110,15 +126,22 @@ def resize(event=None):
     left_width = int(w * 0.6)  # Kurangi dari 0.63
     right_width = int(w * 0.35)  # Naikkan dari 0.32
 
-    left_panel.place(x=15, y=15, width=left_width, height=h - 30)  
+    left_panel.place(x=15, y=15, width=left_width, height=h - 30)
     right_panel.place(x=left_width + 25, y=15, width=right_width - 15, height=h - 30)
 
-    for card in product_cards:
-        card.config(width=int(left_width / 4.5), height=int((h - 150) / 5)) 
+    # Update ukuran canvas dan items_frame
+    if 'canvas' in globals():
+        canvas.config(width=left_width - 30)  # Sesuaikan lebar canvas
 
+    # Update ukuran product cards
+    card_width = int((left_width - 100) / 3)  # 3 kolom dengan padding
+    for card in product_cards:
+        card.config(width=card_width, height=150)  # Fixed height atau sesuaikan
+
+    # Update button sizes
     button_size = int(right_width / 8)
     for btn in keypad_buttons:
-        btn.config(width=int(button_size / 15), height=int(button_size / 40))  
+        btn.config(width=int(button_size / 15), height=int(button_size / 40))
 
 
 root.bind("<Configure>", resize)
@@ -131,33 +154,34 @@ def select_product(product_id, stock_label, index):
     if not product:
         messagebox.showerror("Error", "Produk tidak ditemukan!")
         return
-    
-    current_stock = product["stock"]  
-    
+
+    current_stock = product["stock"]
+
     if current_stock <= 0:
         messagebox.showwarning("Stok Habis", f"{product['name']} sudah habis!")
         return
 
     # Kurangi stok
     new_stock = current_stock - 1
-    
+
     # Update di dictionary
     product["stock"] = new_stock
     product["stock_display"] = f"Stok {new_stock}"
-    
+
     # Update label di GUI
     stock_label.config(text=f"Stok {new_stock}")
-    
+
     # Tambahkan ke keranjang
     selected_products.append({
         "id": product_id,
         "name": product["name"],
-        "price": product["price"],  
+        "price": product["price"],
         "index": index
     })
-    
+
     update_order_display()
     messagebox.showinfo("Ditambahkan", f"{product['name']} telah ditambahkan ke keranjang!")
+
 
 def update_order_display():
     if not selected_products:
@@ -172,11 +196,11 @@ def update_order_display():
     for name, count in counter.items():
         # Cari harga satuan dari products
         unit_price = 0
-        for product in products:  
+        for product in products:
             if product["name"] == name:
                 unit_price = product["price"]  # integer
                 break
-        
+
         order_list.append((name, count, unit_price * count))
 
     mid = (len(order_list) + 1) // 2
@@ -218,12 +242,14 @@ def clear_order():
     global selected_products
     # Reload dari database untuk mendapatkan stok asli
     load_products()  # Fungsi dari controller
-    
+    global products
+    products = get_products()  # Refresh products list
+
     # Reset semua label stok
     for i, product in enumerate(products):
         if i < len(product_stock_labels):
             product_stock_labels[i].config(text=f"Stok {product['stock']}")
-    
+
     selected_products = []
     update_order_display()
     messagebox.showinfo("Dihapus", "Semua pesanan telah dihapus!")
@@ -260,11 +286,11 @@ def process_payment():
     for name, count in counter.items():
         # Cari harga produk
         unit_price = 0
-        for prod in products:  
+        for prod in products:
             if prod["name"] == name:
                 unit_price = prod["price"]
                 break
-        
+
         struk_text += f"{name} x{count}: Rp {unit_price * count:,}\n"
 
     struk_text += f"\nTotal: Rp {total:,}\n"
@@ -276,15 +302,17 @@ def process_payment():
     clear_order()
     clear()
 
+
 # ===================== FUNGSI ADMIN =====================
 def admin_login():
     """Fungsi untuk login admin"""
     password = simpledialog.askstring("Admin Login", "Masukkan password admin:", show='*')
-    
+
     if password == get_admin_password():
         show_admin_panel()
     elif password is not None:
         messagebox.showerror("Login Gagal", "Password salah!")
+
 
 def show_admin_panel():
     """Panel admin """
@@ -362,85 +390,92 @@ def show_admin_panel():
 
         Button(product_frame, text="Hapus", width=6, bg="#e74c3c", fg="white",
                command=delete_selected).pack(side="left", padx=3)
-    
+
     # ===== TAB TAMBAH PRODUK =====
     add_frame = Frame(notebook, bg="#f0f0f0")
     notebook.add(add_frame, text="Tambah Produk")
-    
-    Label(add_frame, text="TAMBAH PRODUK BARU", font=("Arial", 16, "bold"), 
+
+    Label(add_frame, text="TAMBAH PRODUK BARU", font=("Arial", 16, "bold"),
           bg="#f0f0f0").pack(pady=10)
-    
+
     form_frame = Frame(add_frame, bg="white", relief="solid", bd=1)
     form_frame.pack(fill="x", padx=20, pady=10)
-    
+
     # Nama Produk
-    Label(form_frame, text="Nama Produk:", font=("Arial", 10), bg="white").grid(row=0, column=0, sticky="w", padx=10, pady=10)
+    Label(form_frame, text="Nama Produk:", font=("Arial", 10), bg="white").grid(row=0, column=0, sticky="w", padx=10,
+                                                                                pady=10)
     name_var = tk.StringVar()
     name_entry = Entry(form_frame, textvariable=name_var, font=("Arial", 10), width=30)
     name_entry.grid(row=0, column=1, padx=10, pady=10)
-    
+
     # Harga
-    Label(form_frame, text="Harga (Rp):", font=("Arial", 10),bg="white").grid(row=1, column=0, sticky="w", padx=10, pady=10)
+    Label(form_frame, text="Harga (Rp):", font=("Arial", 10), bg="white").grid(row=1, column=0, sticky="w", padx=10,
+                                                                               pady=10)
     price_var = tk.StringVar()
     price_entry = Entry(form_frame, textvariable=price_var, font=("Arial", 10), width=30)
     price_entry.grid(row=1, column=1, padx=10, pady=10)
-    
+
     # Stok Awal
-    Label(form_frame, text="Stok Awal:", font=("Arial", 10), bg="white").grid(row=2, column=0, sticky="w", padx=10, pady=10)
+    Label(form_frame, text="Stok Awal:", font=("Arial", 10), bg="white").grid(row=2, column=0, sticky="w", padx=10,
+                                                                              pady=10)
     stock_var = tk.StringVar(value="0")
     stock_entry = Entry(form_frame, textvariable=stock_var, font=("Arial", 10), width=30)
     stock_entry.grid(row=2, column=1, padx=10, pady=10)
-    
+
     # Info Gambar
-    Label(form_frame, text="Info Gambar:", font=("Arial", 10), 
+    Label(form_frame, text="Info Gambar:", font=("Arial", 10),
           bg="white").grid(row=3, column=0, sticky="w", padx=10, pady=10)
-    image_info = Label(form_frame, text="Simpan gambar dengan nama yang sama\nFormat: PNG, JPG, JPEG", font=("Arial", 8), bg="white", justify="left", fg="gray")
+    image_info = Label(form_frame, text="Simpan gambar dengan nama yang sama\nFormat: PNG, JPG, JPEG",
+                       font=("Arial", 8), bg="white", justify="left", fg="gray")
     image_info.grid(row=3, column=1, padx=10, pady=10, sticky="w")
+
     # Tombol Upload (opsional sebelum simpan)
     def upload_new_product_image():
         name = name_var.get().strip()
         if not name:
             messagebox.showwarning("Peringatan", "Masukkan nama produk terlebih dahulu!")
             return
-    
+
         upload_image(name)
         # Update info setelah upload
         existing_images = get_product_image_extensions(name)
         if existing_images:
             image_info.config(text=f"Gambar tersedia: {', '.join(existing_images)}", fg="green")
 
-    btn_upload_new = Button(form_frame, text="Upload Gambar", font=("Arial", 9),bg="#3498db", fg="white", command=upload_new_product_image)
+    btn_upload_new = Button(form_frame, text="Upload Gambar", font=("Arial", 9), bg="#3498db", fg="white",
+                            command=upload_new_product_image)
     btn_upload_new.grid(row=3, column=2, padx=10, pady=10)
 
     def add_new_product():
         name = name_var.get().strip()
         price = price_var.get().strip()
         stock = stock_var.get().strip()
-    
+
         if not name or not price or not stock:
             messagebox.showwarning("Input Error", "Semua field harus diisi!")
             return
-    
+
         try:
             price_int = int(price)
             stock_int = int(stock)
-        
+
             if price_int <= 0:
                 messagebox.showwarning("Input Error", "Harga harus lebih dari 0!")
                 return
-        
+
             if stock_int < 0:
                 messagebox.showwarning("Input Error", "Stok tidak boleh negatif!")
                 return
-        
-        # Tambah produk ke database
+
+            # Tambah produk ke database
             product_id = add_product(name, price_int, stock_int)
-        
+
             if product_id:
                 # Tanya upload gambar setelah produk berhasil ditambahkan
-                if messagebox.askyesno("Upload Gambar", f"Produk '{name}' berhasil ditambahkan!\n\n""Apakah Anda ingin mengupload gambar sekarang?"):
+                if messagebox.askyesno("Upload Gambar",
+                                       f"Produk '{name}' berhasil ditambahkan!\n\n""Apakah Anda ingin mengupload gambar sekarang?"):
                     upload_image(name)
-            
+
                 messagebox.showinfo("Berhasil", f"Produk '{name}' berhasil ditambahkan!")
                 name_var.set("")
                 price_var.set("")
@@ -449,9 +484,9 @@ def show_admin_panel():
                 refresh_product_display()
             else:
                 messagebox.showerror("Error", "Gagal menambahkan produk!")
-            
+
         except ValueError:
-            messagebox.showerror("Input Error", "Harga dan Stok harus angka!")  
+            messagebox.showerror("Input Error", "Harga dan Stok harus angka!")
 
     def save_changes():
         try:
@@ -461,15 +496,16 @@ def show_admin_panel():
                 success = update_stock(product_id, current_stock)
                 if success:
                     print(f"Saved stock for {prod_data['name']}: {current_stock}")
-            
+
             messagebox.showinfo("Berhasil", "Perubahan stok berhasil disimpan!")
             admin_window.destroy()
             refresh_product_display()
         except Exception as e:
             messagebox.showerror("Error", f"Gagal menyimpan: {e}")
-    
+
     Button(admin_window, text="Simpan Semua Perubahan", font=("Arial", 12),
            bg="#4CAF50", fg="white", command=save_changes).pack(pady=10)
+
 
 def edit_product_window(product_id):
     """Window untuk edit detail produk"""
@@ -477,70 +513,70 @@ def edit_product_window(product_id):
     edit_window.title(f"Edit Produk - ID: {product_id}")
     edit_window.geometry("450x450")  # Perbesar sedikit
     edit_window.configure(bg="#f0f0f0")
-    
+
     # Cari produk berdasarkan ID
     product = None
     for prod in products:
         if prod["id"] == product_id:
             product = prod
             break
-    
+
     if not product:
         messagebox.showerror("Error", "Produk tidak ditemukan!")
         edit_window.destroy()
         return
-    
-    Label(edit_window, text=f"EDIT PRODUK: {product['name']}", 
+
+    Label(edit_window, text=f"EDIT PRODUK: {product['name']}",
           font=("Arial", 14, "bold"), bg="#f0f0f0").pack(pady=10)
-    
+
     form_frame = Frame(edit_window, bg="white", relief="solid", bd=1)
     form_frame.pack(fill="both", padx=20, pady=10)
-    
+
     # Nama Produk
-    Label(form_frame, text="Nama Produk:", font=("Arial", 10), 
+    Label(form_frame, text="Nama Produk:", font=("Arial", 10),
           bg="white").grid(row=0, column=0, sticky="w", padx=10, pady=10)
     name_var = tk.StringVar(value=product["name"])
     name_entry = Entry(form_frame, textvariable=name_var, font=("Arial", 10), width=30)
     name_entry.grid(row=0, column=1, padx=10, pady=10)
-    
+
     # Harga
-    Label(form_frame, text="Harga (Rp):", font=("Arial", 10), 
+    Label(form_frame, text="Harga (Rp):", font=("Arial", 10),
           bg="white").grid(row=1, column=0, sticky="w", padx=10, pady=10)
     price_var = tk.StringVar(value=str(product["price"]))
     price_entry = Entry(form_frame, textvariable=price_var, font=("Arial", 10), width=30)
     price_entry.grid(row=1, column=1, padx=10, pady=10)
-    
+
     # Stok
-    Label(form_frame, text="Stok:", font=("Arial", 10), 
+    Label(form_frame, text="Stok:", font=("Arial", 10),
           bg="white").grid(row=2, column=0, sticky="w", padx=10, pady=10)
     stock_var = tk.StringVar(value=str(product["stock"]))
     stock_entry = Entry(form_frame, textvariable=stock_var, font=("Arial", 10), width=30)
     stock_entry.grid(row=2, column=1, padx=10, pady=10)
-    
+
     # Info Gambar - ROW 3
-    Label(form_frame, text="Gambar Saat Ini:", font=("Arial", 10), 
+    Label(form_frame, text="Gambar Saat Ini:", font=("Arial", 10),
           bg="white").grid(row=3, column=0, sticky="w", padx=10, pady=10)
-    
+
     # Frame untuk info gambar dan tombol
     image_frame = Frame(form_frame, bg="white")
     image_frame.grid(row=3, column=1, padx=10, pady=10, sticky="w")
-    
+
     existing_images = get_product_image_extensions(product["name"])
     if existing_images:
-        image_info = Label(image_frame, text=f"Format tersedia: {', '.join(existing_images)}", 
-                          font=("Arial", 8), bg="white", justify="left", fg="green")
+        image_info = Label(image_frame, text=f"Format tersedia: {', '.join(existing_images)}",
+                           font=("Arial", 8), bg="white", justify="left", fg="green")
     else:
-        image_info = Label(image_frame, text="Belum ada gambar", 
-                          font=("Arial", 8), bg="white", justify="left", fg="red")
+        image_info = Label(image_frame, text="Belum ada gambar",
+                           font=("Arial", 8), bg="white", justify="left", fg="red")
     image_info.pack(anchor="w")
-    
+
     # TOMBOL UPLOAD GAMBAR - ROW 4
-    Label(form_frame, text="Upload Gambar:", font=("Arial", 10), 
+    Label(form_frame, text="Upload Gambar:", font=("Arial", 10),
           bg="white").grid(row=4, column=0, sticky="w", padx=10, pady=10)
-    
+
     upload_frame = Frame(form_frame, bg="white")
     upload_frame.grid(row=4, column=1, padx=10, pady=10, sticky="w")
-    
+
     def upload_for_edit():
         """Fungsi upload khusus untuk edit"""
         if upload_image(product["name"]):
@@ -550,108 +586,127 @@ def edit_product_window(product_id):
                 image_info.config(text=f"Format tersedia: {', '.join(existing_images_new)}", fg="green")
             else:
                 image_info.config(text="Belum ada gambar", fg="red")
-    
+
     btn_upload = Button(upload_frame, text="Pilih Gambar", font=("Arial", 9),
-                       bg="#3498db", fg="white", command=upload_for_edit)
+                        bg="#3498db", fg="white", command=upload_for_edit)
     btn_upload.pack(side="left", padx=(0, 5))
-    
+
     # Label info format
-    Label(upload_frame, text="Format: PNG, JPG, JPEG", 
+    Label(upload_frame, text="Format: PNG, JPG, JPEG",
           font=("Arial", 8), bg="white", fg="gray").pack(side="left")
-    
+
     # Fungsi save edit
     def save_edit():
         new_name = name_var.get().strip()
         new_price = price_var.get().strip()
         new_stock = stock_var.get().strip()
-        
+
         if not new_name or not new_price or not new_stock:
             messagebox.showwarning("Input Error", "Semua field harus diisi!")
             return
-        
+
         try:
             price_int = int(new_price)
             stock_int = int(new_stock)
-            
+
             if price_int <= 0:
                 messagebox.showwarning("Input Error", "Harga harus lebih dari 0!")
                 return
-            
+
             if stock_int < 0:
                 messagebox.showwarning("Input Error", "Stok tidak boleh negatif!")
                 return
-            
+
             # Update produk
             success = update_product(product_id, new_name, price_int, stock_int)
-            
+
             if success:
                 messagebox.showinfo("Berhasil", "Produk berhasil diupdate!")
                 edit_window.destroy()
                 refresh_product_display()
             else:
                 messagebox.showerror("Error", "Gagal mengupdate produk!")
-                
+
         except ValueError:
             messagebox.showerror("Input Error", "Harga dan Stok harus angka!")
-    
+
     # Frame untuk tombol
     button_frame = Frame(edit_window, bg="#f0f0f0")
     button_frame.pack(pady=10)
-    
+
     Button(button_frame, text="Simpan Perubahan", font=("Arial", 12),
            bg="#4CAF50", fg="white", command=save_edit).pack(side="left", padx=5)
-    
+
     Button(button_frame, text="Batal", font=("Arial", 12),
            bg="#f44336", fg="white", command=edit_window.destroy).pack(side="left", padx=5)
+
 
 def refresh_product_display():
     """Refresh tampilan produk di main window"""
     global products, product_cards, product_stock_labels
-    
+
     # Reload produk dari database
     load_products()
-    
-    # Hapus widget lama
-    for widget in items_frame.winfo_children():
-        widget.destroy()
-    
-    # Reset lists
-    product_cards = []
-    product_stock_labels = []
-    
-    # Buat ulang produk display
-    row = 0
-    col = 0
-    
-    for i, product in enumerate(products):
-        item, stock_label = create_item(items_frame, product, i)
-        item.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-        product_cards.append(item)
-        product_stock_labels.append(stock_label)
-        
-        col += 1
-        if col == 3:
-            col = 0
-            row += 1
-    
+    products = get_products()  # Refresh products list
+
+    # Tampilkan ulang produk
+    display_products()
+
     # Update layout
     resize()
 
-# ===================== PANEL KIRI =====================
+
+# ===================== PANEL KIRI DENGAN SCROLLBAR PRODUK =====================
 left_panel = Frame(root, bg="#00B4D8")
 left_panel.place(x=15, y=15)
 
 title = Label(
     left_panel,
     text="Vending Machine",
-    font=("Itim", 20, "bold"),  
+    font=("Itim", 20, "bold"),
     fg="#F5F5F5",
     bg="#00B4D8"
 )
-title.pack(pady=15)  
+title.pack(pady=15)
 
-items_frame = Frame(left_panel, bg="#90E0EF")
-items_frame.pack(pady=8) 
+# ===== CANVAS DENGAN SCROLLBAR UNTUK PRODUK =====
+# Frame untuk canvas dan scrollbar
+canvas_frame = Frame(left_panel, bg="#90E0EF")
+canvas_frame.pack(fill="both", expand=True, pady=8)
+
+# Canvas untuk menampung produk dengan scrollbar
+canvas = tk.Canvas(canvas_frame, bg="#90E0EF", highlightthickness=0)
+canvas.pack(side="left", fill="both", expand=True)
+
+# Scrollbar vertikal
+scrollbar = Scrollbar(canvas_frame, orient="vertical", command=canvas.yview)
+scrollbar.pack(side="right", fill="y")
+
+# Konfigurasi canvas
+canvas.configure(yscrollcommand=scrollbar.set)
+
+# Frame di dalam canvas untuk menampung produk
+items_frame = Frame(canvas, bg="#90E0EF")
+canvas.create_window((0, 0), window=items_frame, anchor="nw")
+
+
+# Fungsi untuk update scrollregion
+def update_scrollregion(event=None):
+    canvas.configure(scrollregion=canvas.bbox("all"))
+    # Update lebar canvas window
+    canvas.itemconfig(canvas_window, width=canvas.winfo_width())
+
+
+canvas_window = canvas.create_window((0, 0), window=items_frame, anchor="nw")
+items_frame.bind("<Configure>", update_scrollregion)
+
+
+# Fungsi untuk mouse wheel scrolling
+def on_mousewheel(event):
+    canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+
+canvas.bind_all("<MouseWheel>", on_mousewheel)
 
 
 # ===================== FUNGSI ITEM DENGAN GAMBAR DAN DICTIONARY =====================
@@ -725,19 +780,78 @@ def create_item(parent, product_dict, index):
 
 
 # CREATE PRODUK DARI DICTIONARY DENGAN GAMBAR
-row = 0
-col = 0
+product_cards = []
+product_stock_labels = []
 
-for i, product in enumerate(products):  # Sudah benar, gunakan products
-    item, stock_label = create_item(items_frame, product, i)
-    item.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-    product_cards.append(item)
-    product_stock_labels.append(stock_label)
+# Grid configuration untuk items_frame
+for i in range(3):  # 3 kolom
+    items_frame.columnconfigure(i, weight=1)
 
-    col += 1
-    if col == 3:
+
+# ===================== FUNGSI UNTUK MEMBUAT ULANG TAMPILAN PRODUK =====================
+def display_products():
+    """Menampilkan produk dalam grid layout"""
+    global product_cards, product_stock_labels
+
+    try:
+        # Pastikan products ada dan tidak kosong
+        if not products or len(products) == 0:
+            print("DEBUG: products is empty")
+            print(f"DEBUG: products variable type: {type(products)}")
+            print(f"DEBUG: products value: {products}")
+
+            # Tampilkan pesan di canvas
+            no_products_label = Label(items_frame, text="Tidak ada produk tersedia",
+                                      font=("Arial", 12), bg="#90E0EF", fg="red")
+            no_products_label.pack(pady=50)
+            return
+
+        print(f"DEBUG: Displaying {len(products)} products")  # Debug print
+
+        # Hapus widget lama jika ada
+        for widget in items_frame.winfo_children():
+            widget.destroy()
+
+        product_cards = []
+        product_stock_labels = []
+
+        # Tampilkan produk dalam grid
+        row = 0
         col = 0
-        row += 1
+
+        for i, product in enumerate(products):
+            try:
+                print(f"DEBUG: Creating product {i}: {product['name']}")  # Debug print
+                item, stock_label = create_item(items_frame, product, i)
+                item.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+                product_cards.append(item)
+                product_stock_labels.append(stock_label)
+
+                col += 1
+                if col == 3:
+                    col = 0
+                    row += 1
+            except Exception as e:
+                print(f"Error creating product {i}: {e}")
+                continue
+
+        # Update ukuran frame produk
+        for i in range(3):
+            items_frame.columnconfigure(i, weight=1)
+
+        # Update scrollregion setelah semua produk ditambahkan
+        items_frame.update_idletasks()
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
+    except Exception as e:
+        print(f"Error in display_products: {e}")
+        import traceback
+        traceback.print_exc()  # Print traceback untuk debugging
+        # Tampilkan pesan error
+        error_label = Label(items_frame, text=f"Error loading products: {e}",
+                            font=("Arial", 10), bg="#90E0EF", fg="red")
+        error_label.pack(pady=50)
+
 
 # ===================== Pesanan Box dengan SCROLLBAR =====================
 order_box = Frame(left_panel, bg="#2c3e50")
@@ -772,20 +886,20 @@ text_frame = Frame(order_content, bg="#34495e")
 text_frame.pack(fill="both", expand=True)
 
 # Scrollbar vertikal
-scrollbar = Scrollbar(text_frame)
-scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+order_scrollbar = Scrollbar(text_frame)
+order_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
 # Text widget untuk menampilkan pesanan
 order_text = Text(text_frame, font=("Courier New", 9, "bold"),
                   fg="white", bg="#34495e",
                   width=40, height=10,
                   wrap=tk.WORD,
-                  yscrollcommand=scrollbar.set,
+                  yscrollcommand=order_scrollbar.set,
                   state="normal")
 order_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
 # Konfigurasi scrollbar
-scrollbar.config(command=order_text.yview)
+order_scrollbar.config(command=order_text.yview)
 
 # Set text awal
 order_text.insert(1.0, "Belum ada pesanan")
@@ -879,5 +993,17 @@ keypad_buttons.extend([btn_clear, btn_zero, btn_ok])
 Button(right_panel, text="ADMIN", font=("Itim", 12, "bold"),
        bg="#f39c12", fg="white", command=admin_login,
        padx=5, pady=3).pack(pady=10, fill="x", padx=15)
+
+# ===================== INISIALISASI AKHIR =====================
+# Panggil display_products() setelah semua setup GUI selesai
+try:
+    display_products()
+    print(f"DEBUG: After display_products, products count: {len(products)}")
+except Exception as e:
+    print(f"Error displaying products: {e}")
+    import traceback
+
+    traceback.print_exc()
+    messagebox.showerror("Error", f"Gagal memuat produk: {e}")
 
 root.mainloop()
