@@ -1,11 +1,17 @@
+import os
+from tkinter import messagebox
+
 import mysql.connector
 from mysql.connector import Error
-import tkinter as tk
-from tkinter import messagebox
-import os
 
 # ===================== VARIABEL GLOBAL =====================
 products = []  # Akan diisi dari database
+
+
+def get_products():
+    """Mengembalikan list produk"""
+    global products
+    return products
 
 # ===================== FUNGSI DATABASE =====================
 def getConnection():
@@ -22,18 +28,19 @@ def getConnection():
         print(f"Connection Error: {err}")
         return None
 
+
 def load_products():
     """Memuat produk dari database"""
     global products
     products = []
-    
+
     connection = getConnection()
     if connection:
         try:
             cursor = connection.cursor()
             cursor.execute("SELECT * FROM products ORDER BY id")
             rows = cursor.fetchall()
-            
+
             for row in rows:
                 id, name, qty, harga = row
                 product_data = {
@@ -45,10 +52,10 @@ def load_products():
                     "stock_display": f"Stok {qty}"  # Untuk display
                 }
                 products.append(product_data)
-            
+
             cursor.close()
             connection.close()
-            
+
             # DEBUG PRINT
             print("=" * 50)
             print("PRODUCTS LOADED (DICTIONARY FORMAT)")
@@ -56,9 +63,9 @@ def load_products():
             for p in products:
                 print(f"  id: {p['id']}, name: {p['name']}, price: {p['price']}, stock: {p['stock']}")
             print("=" * 50)
-            
+
             return True
-            
+
         except Error as e:
             messagebox.showerror("Database Error", f"Gagal memuat produk: {e}")
             if connection:
@@ -66,7 +73,9 @@ def load_products():
             return False
     return False
 
+
 load_products()
+
 
 def update_stock(product_id, new_stock):
     """Update stok produk di database"""
@@ -86,6 +95,7 @@ def update_stock(product_id, new_stock):
             return False
     return False
 
+
 def get_product_by_id(product_id):
     """Mendapatkan informasi produk berdasarkan ID"""
     connection = getConnection()
@@ -103,6 +113,7 @@ def get_product_by_id(product_id):
                 connection.close()
             return None
     return None
+
 
 def get_admin_password():
     """Ambil password admin dari database"""
@@ -122,6 +133,7 @@ def get_admin_password():
             return None
     return None
 
+
 # ===================== FUNGSI CRUD PRODUK =====================
 def add_product(name, price, stock):
     """Menambahkan produk baru ke database"""
@@ -137,7 +149,7 @@ def add_product(name, price, stock):
             product_id = cursor.lastrowid
             cursor.close()
             connection.close()
-            
+
             # Reload products
             load_products()
             return product_id
@@ -148,17 +160,18 @@ def add_product(name, price, stock):
             return None
     return None
 
+
 def update_product(product_id, name=None, price=None, stock=None):
     """Update data produk di database"""
     connection = getConnection()
     if connection:
         try:
             cursor = connection.cursor()
-            
+
             # Build dynamic update query
             update_fields = []
             values = []
-            
+
             if name is not None:
                 update_fields.append("name = %s")
                 values.append(name)
@@ -168,16 +181,16 @@ def update_product(product_id, name=None, price=None, stock=None):
             if stock is not None:
                 update_fields.append("qty = %s")
                 values.append(stock)
-            
+
             if update_fields:
                 values.append(product_id)
                 query = f"UPDATE products SET {', '.join(update_fields)} WHERE id = %s"
                 cursor.execute(query, values)
                 connection.commit()
-            
+
             cursor.close()
             connection.close()
-            
+
             # Reload products
             load_products()
             return True
@@ -187,6 +200,7 @@ def update_product(product_id, name=None, price=None, stock=None):
                 connection.close()
             return False
     return False
+
 
 def delete_product(product_id):
     """Menghapus produk dari database"""
@@ -198,7 +212,7 @@ def delete_product(product_id):
             connection.commit()
             cursor.close()
             connection.close()
-            
+
             # Reload products
             load_products()
             return True
@@ -209,18 +223,16 @@ def delete_product(product_id):
             return False
     return False
 
+
 def get_product_image_extensions(name):
     """Mendapatkan ekstensi file gambar yang tersedia untuk produk"""
     folder = "images"
     possible_ext = [".png", ".jpg", ".jpeg", ".PNG", ".JPG", ".JPEG"]
     existing_images = []
-    
+
     for ext in possible_ext:
         path = os.path.join(folder, name + ext)
         if os.path.exists(path):
             existing_images.append(ext)
-    
+
     return existing_images
-
-
-
