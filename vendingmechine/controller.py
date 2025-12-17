@@ -141,11 +141,13 @@ def add_product(name, price, stock):
     return None
 
 
-def update_product(product_id, name=None, price=None, stock=None):
+def update_product(product_id, name, price, stock):
     """Update data produk di database"""
     connection = getConnection()
     if connection:
         try:
+            if name is None or price is None or stock is None:
+                raise ValueError("Name, price, and stock tidak boleh kosong None")
             cursor = connection.cursor()
 
             # Build dynamic update query
